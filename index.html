@@ -1,0 +1,599 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What If He Stayed? Coach Mode (early prototype)</title><meta name="robots" content="noindex"><meta name="description" content="Early prototype for testing and feedback: a play-calling football game with two fictional teams.">
+<style>:root{--bg:#0f1720;--panel:#17212c;--panel2:#1d2a38;--line:#2c3c4d;--txt:#e8eef4;--mut:#93a4b5;--acc:#f2c230;--good:#3fb97a;--bad:#e5645a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif}
+header{padding:8px 14px;background:#0a1118;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+header h1{font-size:15px;margin:0;color:var(--acc);letter-spacing:.5px}header small{color:var(--mut)}
+.spacer{flex:1}
+button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:8px 11px;font:inherit;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--acc)}button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--acc);color:#1a1400;border-color:var(--acc);font-weight:700}
+button.sel{outline:2px solid var(--acc)}
+#score{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;padding:10px 14px;align-items:center}
+.tm{display:flex;align-items:center;gap:10px}.tm.r{justify-content:flex-end;text-align:right}
+.tm .sw{width:10px;height:44px;border-radius:3px}.tm .nm{font-size:13px;color:var(--mut)}.tm .pt{font-size:36px;font-weight:800;line-height:1}.tm .ball{color:var(--acc);font-size:18px;visibility:hidden}.tm.has .ball{visibility:visible}
+#mid{text-align:center}#clk{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}#sit{color:var(--acc);font-weight:600}
+main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:12px;padding:0 14px 14px}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+canvas{width:100%;height:auto;border-radius:8px;border:1px solid var(--line);display:block;background:#1f5a2c}
+#banner{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;margin-top:8px;min-height:44px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+.card h3{margin:0 0 6px;font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px}
+.reco{border-color:var(--acc)}.reco .big{font-size:18px;font-weight:700}.reco .why{color:var(--txt);margin:6px 0 10px;font-size:14px}
+.row{display:flex;gap:6px;flex-wrap:wrap}.plays{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.plays button{text-align:left;display:flex;justify-content:space-between;gap:6px;font-size:13px}.plays button .w{color:var(--mut);font-variant-numeric:tabular-nums}
+.plays button.best .w{color:var(--good)}
+label.chk{display:flex;gap:6px;align-items:center;color:var(--mut);font-size:13px;margin:8px 0}
+.tabs{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}.tabs button{padding:5px 9px;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:3px 6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:600}
+#log{max-height:260px;overflow:auto;font-size:13px}#log div{padding:3px 0;border-bottom:1px solid var(--line)}#log .sc{color:var(--acc);font-weight:600}#log .tv{color:var(--bad)}
+#panelTab{max-height:360px;overflow:auto}
+.muted{color:var(--mut)}.pill{display:inline-block;padding:1px 8px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);font-size:12px;color:var(--mut)}
+dialog{background:var(--panel);color:var(--txt);border:1px solid var(--acc);border-radius:12px;max-width:520px}dialog::backdrop{background:#000a}
+select,input[type=text]{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px}
+.over{color:var(--acc);font-weight:800;font-size:18px}
+#protoBar{background:#f2c230;color:#1a1400;text-align:center;padding:6px 10px;font-size:13px;line-height:1.3}dialog#welcome{max-width:560px}#welcome li{margin:4px 0}@media(max-width:980px){main>section{display:contents}#field{order:1}#banner{order:2}main>aside{order:3}main>section>.card{order:4;margin-top:0}}@media(max-width:600px){header small{display:none}header{gap:6px}header button{padding:6px 8px;font-size:13px}}</style></head><body>
+<div id="protoBar"><b>EARLY PROTOTYPE</b> for testing and feedback. Both teams are made up. Expect rough edges, and please tell us what you think.</div><header><h1>WHAT IF HE STAYED? &middot; COACH MODE</h1><small>Early prototype &middot; two fictional teams</small><span class="spacer"></span>
+<button id="bNew">New game</button><button id="bSave">Save to file</button><button id="bLoad">Load file</button><button id="bResume">Resume last</button><button id="bAbout">About this demo</button><input type="file" id="fLoad" accept=".json" hidden></header>
+<div id="score"><div class="tm" id="tmA"><div class="sw" id="swA"></div><div><div class="nm" id="nmA"></div><div class="pt" id="ptA">0</div></div><span class="ball">&#9679; ball</span></div>
+<div id="mid"><div id="clk">15:00</div><div id="qtr" class="muted"></div><div id="sit"></div></div>
+<div class="tm r" id="tmB"><span class="ball">ball &#9679;</span><div><div class="nm" id="nmB"></div><div class="pt" id="ptB">0</div></div><div class="sw" id="swB"></div></div></div>
+<main><section><canvas id="field" width="1080" height="420"></canvas><div id="banner">Start a game.</div>
+<div class="card" style="margin-top:10px"><div class="tabs" id="tabs"></div><div id="panelTab"></div></div></section>
+<aside><div id="ctl"></div>
+<div class="card"><h3>Settings</h3><label class="chk"><input type="checkbox" id="optManual"> Full manual: hide all recommendations</label><label class="chk"><input type="checkbox" id="optFast"> Skip animations</label><div id="followBox" class="muted"></div></div></aside></main>
+<dialog id="welcome"><h3 style="margin-top:0">Welcome to the Coach Mode prototype</h3><p><b>This is an early prototype built for testing and feedback.</b> It is not the finished game. The two teams (Harbor City Pilots and Prairie Ridge Stallions) are completely made up.</p><ul><li>You are the head coach. Before every play, pick a call.</li><li>The computer suggests the play that gives your team the best chance to win, and tells you why. You can accept it, choose something else, or turn recommendations off with <i>Full manual</i>.</li><li>The simulation decides what happens, so even a good call can go wrong.</li><li>Your game saves in this browser automatically. Use <i>Save to file</i> to keep a copy.</li></ul><p class="muted">Not built yet: timeouts, penalties, onside kicks, individual player ratings, seasons.</p><p class="muted">Found something confusing, broken or unrealistic? Please tell us in the community.</p><div class="row"><button class="primary" id="welcomeGo">Start playing</button></div></dialog><dialog id="dlg"><div id="dlgBody"></div></dialog>
+<script>/* Two FICTIONAL teams (made up; not real clubs or players).
+   Unit ratings are centred on 50 (about +/-10 is a clear edge). */
+(function (root) {
+'use strict';
+const TEAMS = {
+  PIL: { id: 'PIL', city: 'Harbor City', name: 'Pilots', color: '#1b4f9c', accent: '#f2c230',
+    units: { passOff: 58, runOff: 46, prot: 52, passCover: 47, runStop: 44, rush: 54, kick: 55, punt: 50 },
+    blurb: 'Pass-first offense with a strong arm; run defense is soft.',
+    players: { QB: ['Dale Whitlock'], RB: ['Marcus Teague', 'Ray Pruitt'], WR: ['Terrell Voss', 'Johnny Calder', 'Nico Brandt'], TE: ['Owen Fisk'],
+      DL: ['Big Ed Marlow', 'Cole Danner', 'Hank Oyler', 'Rudy Sparks'], LB: ['Gil Ransom', 'Pete Okafor', 'Lance Doyle'], DB: ['Tyrone Beck', 'Sam Ibarra', 'Walt Keene', 'Zane Roark'], K: ['Aldo Reyes'], P: ['Jon Pell'] } },
+  STA: { id: 'STA', city: 'Prairie Ridge', name: 'Stallions', color: '#8a1c1c', accent: '#d8d8d8',
+    units: { passOff: 47, runOff: 57, prot: 50, passCover: 53, runStop: 58, rush: 48, kick: 49, punt: 53 },
+    blurb: 'Ground-and-pound offense with a tough run defense; thinner passing game.',
+    players: { QB: ['Gary Hollis'], RB: ['Boone Kessler', 'Luis Mantel'], WR: ['Dex Raines', 'Phil Orsini', 'Kip Lawless'], TE: ['Ross Tandy'],
+      DL: ['Moose Gaddis', 'Trent Vail', 'Abe Fenwick', 'Colt Reddick'], LB: ['Ike Burdett', 'Matt Szabo', 'Vern Prado'], DB: ['Hal Dutton', 'Ozzie Quill', 'Reg Lister', 'Cam Yates'], K: ['Wes Dunmore'], P: ['Stu Kalman'] } }
+};
+const api = { TEAMS };
+if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.V2Teams = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+;
+/* Expected-points table built by tools/build_ep.js (self-play of this engine, league-average teams). Index: EP[down-1][toGoBucket][yardsFromOwnGoal]. */
+(function (root) { const EDGES = [1,2,3,5,7,10,15,99]; const EP = [[[0,-0.76,-0.75,-0.73,-0.7,-0.64,-0.59,-0.53,-0.46,-0.36,-0.29,-0.25,-0.15,-0.06,0.03,0.11,0.16,0.25,0.34,0.42,0.5,0.58,0.65,0.74,0.82,0.92,1.01,1.07,1.15,1.24,1.33,1.4,1.47,1.54,1.63,1.69,1.76,1.81,1.88,1.97,2.04,2.13,2.24,2.28,2.36,2.43,2.48,2.57,2.65,2.69,2.81,2.89,2.99,3.09,3.14,3.21,3.31,3.37,3.46,3.53,3.61,3.72,3.81,3.92,3.99,4.07,4.16,4.23,4.3,4.39,4.44,4.52,4.6,4.66,4.74,4.81,4.89,4.97,5.06,5.14,5.23,5.29,5.36,5.42,5.48,5.56,5.63,5.72,5.83,5.92,6.02,6.12,6.22,6.31,6.39,6.46,6.52,6.56,6.58,6.6],[0,-0.82,-0.78,-0.73,-0.69,-0.61,-0.53,-0.48,-0.4,-0.33,-0.27,-0.2,-0.13,-0.08,0.03,0.12,0.19,0.26,0.32,0.4,0.49,0.56,0.63,0.73,0.84,0.93,1.01,1.1,1.19,1.24,1.29,1.33,1.4,1.49,1.57,1.61,1.7,1.78,1.89,1.97,2.03,2.09,2.19,2.27,2.38,2.44,2.52,2.61,2.69,2.77,2.85,2.91,2.96,3.02,3.07,3.14,3.25,3.33,3.42,3.55,3.65,3.75,3.85,3.91,3.97,4.05,4.11,4.19,4.28,4.36,4.43,4.52,4.59,4.66,4.74,4.81,4.88,4.96,5.04,5.11,5.19,5.26,5.33,5.4,5.47,5.55,5.64,5.73,5.82,5.92,6.03,6.12,6.2,6.28,6.34,6.41,6.46,6.49,6.51,6.53],[0,-0.85,-0.83,-0.78,-0.74,-0.67,-0.6,-0.54,-0.47,-0.36,-0.31,-0.24,-0.14,-0.07,0.03,0.13,0.2,0.3,0.36,0.44,0.51,0.57,0.64,0.71,0.78,0.86,0.95,1.02,1.11,1.17,1.24,1.32,1.41,1.48,1.56,1.64,1.74,1.8,1.91,1.96,2.04,2.11,2.17,2.25,2.34,2.42,2.52,2.59,2.66,2.76,2.83,2.89,2.94,2.99,3.06,3.15,3.23,3.29,3.41,3.51,3.59,3.69,3.76,3.85,3.93,4,4.08,4.15,4.23,4.32,4.4,4.5,4.57,4.65,4.74,4.83,4.9,4.98,5.06,5.14,5.21,5.27,5.34,5.4,5.47,5.57,5.66,5.74,5.83,5.92,6.02,6.11,6.17,6.24,6.31,6.39,6.45,6.48,6.51,6.55],[0,-0.89,-0.84,-0.82,-0.77,-0.7,-0.64,-0.57,-0.5,-0.44,-0.36,-0.3,-0.21,-0.1,-0.01,0.06,0.16,0.23,0.3,0.36,0.42,0.49,0.57,0.63,0.7,0.79,0.88,0.95,1.01,1.11,1.18,1.27,1.34,1.44,1.52,1.62,1.68,1.78,1.85,1.95,2.02,2.08,2.16,2.24,2.29,2.39,2.46,2.53,2.64,2.7,2.77,2.86,2.91,2.97,3.05,3.13,3.21,3.31,3.37,3.47,3.55,3.62,3.7,3.79,3.84,3.93,4.03,4.12,4.2,4.27,4.34,4.44,4.53,4.61,4.68,4.75,4.83,4.91,4.97,5.04,5.08,5.17,5.28,5.36,5.44,5.53,5.6,5.71,5.78,5.84,5.91,5.97,6.03,6.1,6.17,6.25,6.33,6.37,6.42,6.49],[0,-0.97,-0.95,-0.9,-0.88,-0.81,-0.74,-0.66,-0.57,-0.5,-0.43,-0.36,-0.28,-0.21,-0.14,-0.08,0.01,0.1,0.17,0.24,0.32,0.38,0.46,0.55,0.62,0.72,0.79,0.88,0.98,1.09,1.16,1.23,1.31,1.39,1.49,1.56,1.62,1.69,1.77,1.82,1.91,1.96,2.06,2.16,2.25,2.33,2.42,2.49,2.57,2.64,2.7,2.78,2.87,2.94,3.03,3.11,3.18,3.24,3.3,3.33,3.39,3.44,3.5,3.58,3.69,3.8,3.92,4.02,4.13,4.23,4.32,4.38,4.44,4.5,4.57,4.63,4.72,4.8,4.89,4.97,5.05,5.14,5.22,5.27,5.34,5.4,5.48,5.56,5.63,5.69,5.73,5.81,5.9,5.98,6.07,6.18,6.29,6.37,6.44,6.48],[0,-1.08,-1.05,-1.02,-0.97,-0.91,-0.83,-0.74,-0.68,-0.61,-0.53,-0.47,-0.41,-0.34,-0.31,-0.24,-0.15,-0.07,0.01,0.1,0.2,0.27,0.37,0.44,0.53,0.61,0.69,0.76,0.85,0.94,1.01,1.08,1.16,1.22,1.3,1.4,1.47,1.56,1.61,1.68,1.78,1.87,1.95,2.02,2.09,2.17,2.26,2.31,2.39,2.48,2.56,2.64,2.74,2.81,2.86,2.9,2.95,3.02,3.08,3.15,3.23,3.33,3.44,3.52,3.62,3.72,3.8,3.89,4,4.1,4.18,4.28,4.36,4.45,4.52,4.58,4.65,4.72,4.77,4.84,4.91,4.99,5.07,5.14,5.21,5.28,5.32,5.38,5.42,5.47,5.55,5.64,5.76,5.89,6.02,6.15,6.3,6.37,6.44,6.49],[0,-1.37,-1.34,-1.3,-1.26,-1.18,-1.12,-1.03,-0.94,-0.87,-0.81,-0.74,-0.66,-0.58,-0.51,-0.45,-0.37,-0.29,-0.22,-0.15,-0.09,-0.01,0.06,0.14,0.23,0.31,0.38,0.47,0.54,0.6,0.68,0.75,0.83,0.92,1.01,1.1,1.19,1.28,1.37,1.43,1.5,1.6,1.68,1.75,1.82,1.9,1.98,2.06,2.1,2.17,2.22,2.24,2.3,2.34,2.36,2.43,2.48,2.57,2.7,2.79,2.91,3.02,3.13,3.23,3.35,3.44,3.55,3.64,3.75,3.84,3.93,4.02,4.09,4.16,4.23,4.29,4.35,4.43,4.5,4.55,4.62,4.69,4.76,4.8,4.83,4.88,4.97,5.06,5.15,5.25,5.41,5.56,5.71,5.86,6.01,6.16,6.3,6.36,6.44,6.51],[0,-1.58,-1.58,-1.54,-1.53,-1.46,-1.4,-1.36,-1.3,-1.21,-1.16,-1.07,-1.03,-0.95,-0.86,-0.77,-0.69,-0.61,-0.52,-0.43,-0.36,-0.3,-0.22,-0.14,-0.08,0,0.08,0.16,0.25,0.31,0.37,0.46,0.54,0.61,0.69,0.78,0.87,0.96,1.02,1.09,1.16,1.23,1.3,1.35,1.42,1.5,1.51,1.56,1.57,1.59,1.66,1.7,1.76,1.85,1.93,2.04,2.15,2.23,2.36,2.48,2.6,2.72,2.85,2.97,3.08,3.17,3.27,3.37,3.49,3.58,3.65,3.73,3.79,3.86,3.94,3.98,4,4.06,4.14,4.18,4.23,4.28,4.34,4.42,4.53,4.62,4.76,4.88,5.03,5.19,5.36,5.52,5.68,5.84,6.01,6.16,6.32,6.39,6.45,6.53]],[[0,-0.97,-0.93,-0.9,-0.85,-0.76,-0.69,-0.63,-0.55,-0.49,-0.41,-0.34,-0.28,-0.23,-0.14,-0.05,0.04,0.12,0.18,0.28,0.37,0.44,0.5,0.58,0.65,0.72,0.78,0.84,0.92,1,1.06,1.12,1.22,1.31,1.4,1.48,1.56,1.65,1.77,1.84,1.91,2,2.08,2.16,2.22,2.27,2.33,2.42,2.48,2.55,2.63,2.73,2.82,2.92,3,3.08,3.14,3.23,3.31,3.39,3.48,3.57,3.67,3.75,3.83,3.91,3.96,4.02,4.08,4.15,4.26,4.34,4.43,4.51,4.59,4.69,4.76,4.83,4.91,4.98,5.05,5.11,5.15,5.22,5.29,5.36,5.43,5.52,5.62,5.74,5.83,5.92,6,6.1,6.17,6.24,6.3,6.34,6.36,6.39],[0,-0.99,-0.97,-0.94,-0.89,-0.85,-0.78,-0.68,-0.62,-0.56,-0.48,-0.42,-0.34,-0.26,-0.21,-0.12,-0.05,0.01,0.1,0.18,0.24,0.32,0.38,0.5,0.57,0.63,0.72,0.81,0.91,1,1.06,1.15,1.25,1.32,1.4,1.47,1.52,1.59,1.66,1.71,1.79,1.86,1.96,2.03,2.11,2.19,2.29,2.39,2.48,2.56,2.65,2.75,2.85,2.93,2.99,3.06,3.13,3.23,3.31,3.39,3.46,3.54,3.6,3.66,3.73,3.78,3.86,3.93,4.02,4.11,4.19,4.29,4.38,4.45,4.55,4.61,4.7,4.79,4.84,4.92,4.97,5.03,5.11,5.18,5.25,5.33,5.41,5.51,5.6,5.67,5.76,5.85,5.93,6,6.07,6.12,6.2,6.22,6.24,6.27],[0,-1.11,-1.06,-1.02,-0.98,-0.91,-0.82,-0.77,-0.69,-0.64,-0.56,-0.5,-0.45,-0.37,-0.28,-0.21,-0.15,-0.09,-0.01,0.07,0.16,0.22,0.32,0.43,0.53,0.62,0.69,0.75,0.82,0.89,0.98,1.04,1.11,1.19,1.3,1.39,1.48,1.52,1.59,1.67,1.75,1.81,1.9,1.96,2.05,2.15,2.25,2.33,2.4,2.47,2.56,2.62,2.69,2.77,2.85,2.95,3.04,3.13,3.23,3.33,3.4,3.45,3.48,3.5,3.57,3.64,3.71,3.79,3.89,4,4.12,4.22,4.31,4.38,4.47,4.55,4.65,4.72,4.79,4.85,4.93,5,5.06,5.12,5.21,5.29,5.36,5.43,5.51,5.6,5.69,5.75,5.83,5.9,5.96,6.03,6.12,6.15,6.19,6.21],[0,-1.35,-1.28,-1.23,-1.19,-1.12,-1.06,-0.98,-0.9,-0.86,-0.79,-0.72,-0.64,-0.54,-0.47,-0.39,-0.31,-0.26,-0.18,-0.1,-0.02,0.07,0.15,0.24,0.32,0.4,0.48,0.55,0.61,0.68,0.74,0.82,0.88,0.95,1.02,1.12,1.21,1.27,1.36,1.45,1.55,1.61,1.67,1.75,1.88,1.98,2.07,2.16,2.27,2.35,2.41,2.48,2.55,2.63,2.69,2.76,2.86,2.96,3.01,3.04,3.08,3.13,3.2,3.24,3.32,3.41,3.51,3.62,3.73,3.85,3.94,4.04,4.15,4.24,4.33,4.4,4.46,4.54,4.6,4.64,4.71,4.78,4.86,4.94,5.02,5.09,5.17,5.26,5.33,5.38,5.43,5.48,5.54,5.61,5.69,5.8,5.92,5.99,6.06,6.15],[0,-1.44,-1.43,-1.41,-1.37,-1.3,-1.23,-1.17,-1.11,-1.04,-0.98,-0.92,-0.87,-0.81,-0.75,-0.66,-0.59,-0.53,-0.45,-0.34,-0.22,-0.15,-0.06,0.01,0.12,0.21,0.29,0.35,0.44,0.52,0.61,0.67,0.74,0.8,0.88,0.94,1.02,1.08,1.17,1.24,1.31,1.37,1.46,1.55,1.66,1.73,1.82,1.91,2,2.05,2.12,2.18,2.28,2.36,2.44,2.51,2.55,2.56,2.6,2.63,2.67,2.72,2.77,2.89,3,3.11,3.23,3.34,3.45,3.59,3.71,3.82,3.93,4.05,4.15,4.23,4.3,4.35,4.43,4.47,4.53,4.57,4.63,4.7,4.77,4.82,4.89,4.94,5,5.06,5.09,5.17,5.25,5.36,5.5,5.67,5.84,5.96,6.05,6.18],[0,-1.68,-1.63,-1.6,-1.57,-1.51,-1.48,-1.41,-1.35,-1.3,-1.23,-1.15,-1.08,-1,-0.92,-0.85,-0.79,-0.71,-0.64,-0.55,-0.47,-0.39,-0.3,-0.2,-0.14,-0.08,-0.01,0.08,0.15,0.23,0.29,0.38,0.48,0.57,0.64,0.71,0.79,0.88,0.95,1.03,1.11,1.23,1.34,1.42,1.53,1.61,1.68,1.75,1.77,1.82,1.88,1.95,2.03,2.09,2.12,2.15,2.18,2.21,2.24,2.26,2.31,2.44,2.58,2.72,2.86,3.01,3.13,3.27,3.37,3.48,3.58,3.67,3.75,3.86,3.93,4.01,4.07,4.15,4.22,4.26,4.31,4.37,4.44,4.49,4.54,4.57,4.62,4.67,4.68,4.73,4.81,4.92,5.07,5.23,5.42,5.64,5.85,5.96,6.06,6.15],[0,-2.05,-2.03,-1.99,-1.94,-1.88,-1.82,-1.76,-1.68,-1.6,-1.54,-1.49,-1.41,-1.33,-1.25,-1.19,-1.1,-1.02,-0.94,-0.85,-0.77,-0.71,-0.61,-0.53,-0.45,-0.36,-0.28,-0.22,-0.12,-0.05,0.03,0.1,0.16,0.24,0.31,0.39,0.48,0.56,0.63,0.72,0.79,0.86,0.95,1,1.06,1.15,1.21,1.28,1.34,1.39,1.44,1.44,1.46,1.49,1.52,1.56,1.6,1.69,1.8,1.91,2.03,2.15,2.28,2.41,2.55,2.68,2.81,2.93,3.05,3.18,3.28,3.39,3.48,3.57,3.64,3.71,3.76,3.82,3.86,3.91,3.95,4,4.03,4.06,4.09,4.13,4.17,4.25,4.34,4.46,4.61,4.8,4.99,5.21,5.42,5.63,5.84,5.95,6.06,6.16],[0,-2.26,-2.24,-2.22,-2.18,-2.13,-2.05,-1.99,-1.93,-1.86,-1.79,-1.73,-1.67,-1.6,-1.52,-1.45,-1.38,-1.3,-1.22,-1.13,-1.06,-0.99,-0.91,-0.82,-0.76,-0.68,-0.61,-0.53,-0.45,-0.37,-0.29,-0.19,-0.1,-0.01,0.06,0.14,0.22,0.29,0.37,0.45,0.52,0.6,0.67,0.73,0.79,0.82,0.84,0.88,0.9,0.91,0.95,0.98,1.03,1.1,1.17,1.25,1.34,1.44,1.52,1.63,1.75,1.89,2.03,2.16,2.3,2.45,2.58,2.69,2.8,2.92,3.03,3.13,3.21,3.29,3.36,3.42,3.47,3.51,3.55,3.59,3.63,3.67,3.71,3.78,3.85,3.93,4.02,4.15,4.28,4.43,4.6,4.79,4.99,5.2,5.41,5.63,5.84,5.94,6.04,6.15]],[[0,-1.4,-1.39,-1.37,-1.33,-1.28,-1.21,-1.17,-1.1,-1.02,-0.97,-0.9,-0.82,-0.75,-0.66,-0.63,-0.55,-0.44,-0.36,-0.3,-0.21,-0.13,-0.02,0.05,0.14,0.23,0.32,0.39,0.47,0.56,0.61,0.68,0.73,0.83,0.9,0.96,1.02,1.1,1.19,1.28,1.33,1.43,1.51,1.58,1.67,1.73,1.8,1.93,2.04,2.16,2.29,2.41,2.53,2.65,2.75,2.84,2.91,3.01,3.09,3.19,3.29,3.36,3.36,3.38,3.4,3.41,3.43,3.44,3.47,3.58,3.68,3.79,3.89,3.99,4.09,4.16,4.24,4.33,4.41,4.5,4.56,4.64,4.73,4.79,4.86,4.91,4.97,5.05,5.11,5.18,5.26,5.33,5.41,5.47,5.51,5.56,5.59,5.61,5.62,5.64],[0,-1.62,-1.59,-1.56,-1.53,-1.49,-1.42,-1.36,-1.29,-1.23,-1.16,-1.07,-0.97,-0.9,-0.81,-0.73,-0.65,-0.57,-0.52,-0.44,-0.33,-0.27,-0.18,-0.1,-0.02,0.05,0.12,0.18,0.25,0.32,0.41,0.5,0.59,0.7,0.78,0.87,0.94,1.02,1.1,1.16,1.22,1.29,1.36,1.44,1.51,1.56,1.67,1.79,1.91,2.03,2.15,2.26,2.39,2.5,2.56,2.62,2.69,2.78,2.89,2.99,3.06,3.13,3.14,3.15,3.16,3.16,3.2,3.25,3.31,3.43,3.56,3.69,3.81,3.92,3.99,4.1,4.19,4.26,4.33,4.4,4.47,4.54,4.59,4.65,4.72,4.77,4.84,4.89,4.96,5.01,5.08,5.14,5.21,5.25,5.3,5.35,5.44,5.46,5.49,5.52],[0,-1.76,-1.73,-1.73,-1.72,-1.68,-1.61,-1.56,-1.47,-1.39,-1.29,-1.2,-1.09,-1.03,-0.94,-0.87,-0.81,-0.73,-0.65,-0.61,-0.51,-0.45,-0.39,-0.32,-0.25,-0.17,-0.08,-0.01,0.09,0.17,0.26,0.34,0.4,0.49,0.57,0.66,0.74,0.82,0.89,0.99,1.06,1.13,1.19,1.26,1.34,1.43,1.5,1.6,1.71,1.81,1.9,1.97,2.05,2.12,2.18,2.24,2.3,2.37,2.45,2.51,2.56,2.57,2.6,2.65,2.69,2.76,2.86,2.96,3.13,3.25,3.41,3.54,3.66,3.75,3.85,3.9,3.99,4.06,4.12,4.2,4.26,4.32,4.38,4.44,4.5,4.57,4.62,4.69,4.74,4.82,4.88,4.94,4.98,5.03,5.08,5.15,5.24,5.27,5.29,5.35],[0,-2.13,-2.1,-2.08,-2.06,-2.02,-1.95,-1.89,-1.82,-1.74,-1.66,-1.57,-1.47,-1.41,-1.34,-1.28,-1.21,-1.14,-1.06,-0.99,-0.9,-0.81,-0.72,-0.64,-0.57,-0.49,-0.41,-0.35,-0.28,-0.2,-0.11,-0.03,0.04,0.12,0.2,0.27,0.35,0.41,0.48,0.54,0.61,0.69,0.78,0.86,0.98,1.11,1.23,1.32,1.42,1.52,1.58,1.64,1.67,1.74,1.8,1.87,1.93,1.99,2.01,2.02,1.99,2,2.04,2.08,2.16,2.28,2.46,2.62,2.78,2.91,3.04,3.2,3.31,3.41,3.53,3.64,3.73,3.82,3.86,3.93,3.98,4.03,4.07,4.11,4.13,4.17,4.22,4.26,4.31,4.37,4.4,4.46,4.49,4.54,4.65,4.78,4.96,5.04,5.14,5.3],[0,-2.42,-2.38,-2.35,-2.31,-2.26,-2.2,-2.14,-2.08,-2.01,-1.94,-1.89,-1.81,-1.73,-1.64,-1.55,-1.48,-1.39,-1.31,-1.23,-1.15,-1.08,-0.98,-0.91,-0.86,-0.78,-0.7,-0.63,-0.55,-0.5,-0.4,-0.31,-0.23,-0.15,-0.07,-0.01,0.05,0.12,0.2,0.27,0.35,0.45,0.54,0.65,0.73,0.82,0.92,1.01,1.09,1.14,1.2,1.27,1.32,1.36,1.42,1.46,1.5,1.48,1.47,1.49,1.52,1.53,1.58,1.7,1.87,2.02,2.18,2.35,2.54,2.69,2.83,2.95,3.09,3.21,3.3,3.38,3.47,3.53,3.58,3.65,3.69,3.73,3.76,3.79,3.83,3.88,3.89,3.92,3.95,3.97,4,4.03,4.13,4.26,4.42,4.62,4.88,5,5.16,5.29],[0,-2.59,-2.59,-2.56,-2.52,-2.45,-2.38,-2.31,-2.22,-2.14,-2.07,-2,-1.95,-1.9,-1.85,-1.79,-1.71,-1.62,-1.54,-1.46,-1.35,-1.25,-1.16,-1.07,-1.01,-0.94,-0.86,-0.8,-0.74,-0.67,-0.6,-0.52,-0.44,-0.35,-0.28,-0.2,-0.13,-0.06,0.02,0.09,0.18,0.29,0.39,0.48,0.57,0.66,0.72,0.79,0.82,0.88,0.95,1,1.04,1.08,1.1,1.1,1.08,1.06,1.07,1.12,1.17,1.22,1.36,1.5,1.67,1.84,1.99,2.18,2.38,2.54,2.72,2.86,2.98,3.08,3.18,3.24,3.31,3.36,3.41,3.45,3.51,3.55,3.59,3.62,3.64,3.66,3.68,3.68,3.69,3.72,3.77,3.87,3.99,4.16,4.37,4.61,4.87,5.01,5.15,5.29],[0,-2.79,-2.75,-2.71,-2.68,-2.61,-2.54,-2.47,-2.39,-2.33,-2.26,-2.21,-2.15,-2.07,-1.99,-1.95,-1.86,-1.79,-1.7,-1.61,-1.56,-1.48,-1.4,-1.32,-1.25,-1.17,-1.1,-1.02,-0.95,-0.87,-0.79,-0.71,-0.65,-0.58,-0.49,-0.39,-0.3,-0.22,-0.12,-0.04,0.05,0.12,0.19,0.25,0.33,0.38,0.45,0.5,0.55,0.58,0.62,0.62,0.63,0.63,0.65,0.66,0.67,0.71,0.78,0.83,0.94,1.05,1.19,1.34,1.49,1.65,1.84,2.01,2.18,2.34,2.48,2.63,2.74,2.84,2.93,3,3.07,3.13,3.18,3.23,3.26,3.3,3.32,3.34,3.36,3.38,3.4,3.46,3.52,3.58,3.67,3.82,3.98,4.16,4.37,4.61,4.88,5.02,5.14,5.27],[0,-2.9,-2.88,-2.85,-2.83,-2.78,-2.73,-2.67,-2.59,-2.52,-2.46,-2.39,-2.31,-2.24,-2.18,-2.09,-2.02,-1.94,-1.88,-1.8,-1.73,-1.64,-1.56,-1.49,-1.41,-1.32,-1.25,-1.16,-1.08,-1,-0.93,-0.85,-0.76,-0.69,-0.61,-0.54,-0.46,-0.37,-0.28,-0.22,-0.13,-0.07,0.01,0.06,0.11,0.15,0.19,0.22,0.26,0.3,0.32,0.36,0.39,0.43,0.46,0.5,0.54,0.58,0.64,0.72,0.82,0.94,1.06,1.23,1.4,1.57,1.75,1.91,2.07,2.23,2.37,2.5,2.61,2.7,2.8,2.88,2.94,2.99,3.03,3.07,3.1,3.12,3.16,3.19,3.24,3.28,3.34,3.4,3.48,3.55,3.65,3.76,3.91,4.11,4.33,4.56,4.84,4.98,5.13,5.29]],[[0,-3.57,-3.53,-3.49,-3.45,-3.37,-3.28,-3.21,-3.13,-3.05,-2.98,-2.91,-2.83,-2.76,-2.68,-2.61,-2.53,-2.46,-2.38,-2.3,-2.23,-2.15,-2.07,-1.99,-1.91,-1.83,-1.76,-1.69,-1.61,-1.53,-1.46,-1.39,-1.31,-1.22,-1.15,-1.07,-0.99,-0.9,-0.82,-0.74,-0.67,-0.58,-0.51,-0.44,-0.37,-0.3,-0.23,0.1,0.43,0.75,1.09,1.43,1.74,2.05,2.11,2.16,2.24,2.3,2.38,2.5,2.6,2.72,2.46,2.2,1.98,1.78,1.57,1.43,1.27,1.51,1.74,1.93,2.12,2.28,2.41,2.52,2.61,2.69,2.75,2.79,2.82,2.85,2.88,2.89,2.9,2.91,2.91,2.91,2.91,2.91,2.92,2.92,2.92,2.92,2.93,2.93,2.93,2.93,2.93,2.93],[0,-3.56,-3.51,-3.48,-3.44,-3.36,-3.28,-3.21,-3.13,-3.06,-2.98,-2.9,-2.83,-2.75,-2.68,-2.6,-2.52,-2.45,-2.37,-2.3,-2.22,-2.14,-2.07,-1.99,-1.92,-1.84,-1.76,-1.69,-1.62,-1.54,-1.46,-1.38,-1.31,-1.23,-1.15,-1.07,-0.99,-0.91,-0.83,-0.75,-0.67,-0.59,-0.52,-0.44,-0.37,-0.29,-0.23,0.03,0.3,0.55,0.82,1.08,1.34,1.59,1.65,1.71,1.78,1.86,1.94,2.02,2.11,2.19,1.95,1.76,1.59,1.46,1.34,1.26,1.21,1.49,1.73,1.94,2.11,2.27,2.39,2.5,2.58,2.65,2.71,2.77,2.81,2.85,2.87,2.89,2.9,2.91,2.92,2.92,2.92,2.93,2.93,2.93,2.93,2.93,2.92,2.93,2.93,2.93,2.93,2.93],[0,-3.59,-3.54,-3.5,-3.46,-3.38,-3.3,-3.21,-3.13,-3.06,-2.98,-2.91,-2.83,-2.76,-2.68,-2.61,-2.53,-2.45,-2.37,-2.3,-2.22,-2.15,-2.07,-2,-1.92,-1.85,-1.77,-1.69,-1.61,-1.53,-1.46,-1.37,-1.29,-1.22,-1.13,-1.05,-0.98,-0.9,-0.82,-0.74,-0.67,-0.59,-0.52,-0.44,-0.37,-0.3,-0.23,-0.17,-0.11,-0.06,-0.01,0.03,0.07,0.1,0.11,0.12,0.11,0.1,0.08,0.05,0.02,-0.01,0.02,0.12,0.25,0.44,0.66,0.93,1.22,1.48,1.7,1.91,2.09,2.25,2.38,2.5,2.6,2.68,2.74,2.78,2.82,2.85,2.88,2.89,2.9,2.91,2.92,2.92,2.92,2.92,2.92,2.92,2.93,2.93,2.93,2.93,2.94,2.94,2.94,2.93],[0,-3.57,-3.53,-3.48,-3.45,-3.36,-3.28,-3.2,-3.12,-3.04,-2.97,-2.89,-2.82,-2.75,-2.68,-2.61,-2.52,-2.45,-2.37,-2.3,-2.22,-2.14,-2.07,-2,-1.92,-1.84,-1.76,-1.69,-1.61,-1.54,-1.46,-1.38,-1.31,-1.23,-1.15,-1.07,-0.99,-0.9,-0.83,-0.75,-0.68,-0.6,-0.52,-0.45,-0.38,-0.3,-0.23,-0.16,-0.1,-0.05,0.01,0.05,0.08,0.1,0.12,0.12,0.11,0.1,0.07,0.05,0.02,-0.02,0.02,0.11,0.23,0.43,0.66,0.92,1.23,1.49,1.73,1.95,2.12,2.27,2.41,2.51,2.6,2.67,2.73,2.78,2.81,2.85,2.87,2.89,2.9,2.91,2.92,2.92,2.93,2.93,2.93,2.93,2.93,2.93,2.92,2.93,2.93,2.93,2.92,2.92],[0,-3.56,-3.52,-3.48,-3.44,-3.36,-3.28,-3.21,-3.13,-3.05,-2.97,-2.9,-2.82,-2.74,-2.67,-2.6,-2.52,-2.45,-2.37,-2.31,-2.23,-2.15,-2.07,-2,-1.92,-1.84,-1.76,-1.68,-1.61,-1.53,-1.45,-1.38,-1.3,-1.21,-1.14,-1.06,-0.98,-0.9,-0.82,-0.74,-0.67,-0.59,-0.51,-0.44,-0.36,-0.29,-0.23,-0.16,-0.1,-0.05,0,0.03,0.07,0.09,0.1,0.11,0.11,0.1,0.08,0.05,0.02,-0.01,0.03,0.11,0.26,0.44,0.67,0.94,1.25,1.52,1.77,1.97,2.15,2.3,2.42,2.52,2.59,2.66,2.72,2.77,2.81,2.84,2.86,2.88,2.89,2.9,2.9,2.91,2.92,2.92,2.92,2.93,2.93,2.93,2.94,2.93,2.93,2.93,2.93,2.93],[0,-3.57,-3.53,-3.49,-3.45,-3.37,-3.29,-3.22,-3.14,-3.06,-2.98,-2.9,-2.82,-2.75,-2.67,-2.59,-2.52,-2.44,-2.37,-2.29,-2.22,-2.14,-2.07,-2,-1.92,-1.85,-1.77,-1.69,-1.62,-1.54,-1.46,-1.38,-1.3,-1.22,-1.15,-1.07,-0.99,-0.91,-0.83,-0.76,-0.68,-0.6,-0.52,-0.45,-0.37,-0.3,-0.23,-0.16,-0.1,-0.04,0.01,0.04,0.07,0.09,0.11,0.11,0.1,0.08,0.07,0.05,0.02,-0.01,0.01,0.09,0.23,0.41,0.63,0.89,1.2,1.47,1.71,1.92,2.11,2.26,2.4,2.49,2.58,2.65,2.71,2.76,2.8,2.83,2.86,2.88,2.89,2.9,2.91,2.91,2.92,2.92,2.92,2.93,2.93,2.93,2.93,2.93,2.93,2.93,2.93,2.93],[0,-3.56,-3.53,-3.49,-3.45,-3.37,-3.28,-3.21,-3.13,-3.06,-2.98,-2.9,-2.82,-2.75,-2.68,-2.6,-2.52,-2.45,-2.38,-2.3,-2.23,-2.14,-2.06,-1.99,-1.91,-1.83,-1.75,-1.67,-1.6,-1.53,-1.44,-1.37,-1.3,-1.22,-1.14,-1.07,-0.99,-0.92,-0.83,-0.75,-0.67,-0.59,-0.52,-0.45,-0.37,-0.3,-0.24,-0.17,-0.11,-0.06,0,0.03,0.07,0.09,0.1,0.11,0.11,0.09,0.07,0.05,0.02,-0.01,0.04,0.13,0.28,0.46,0.69,0.95,1.25,1.5,1.73,1.93,2.11,2.27,2.41,2.52,2.61,2.68,2.74,2.79,2.82,2.85,2.87,2.9,2.91,2.91,2.91,2.92,2.92,2.92,2.92,2.93,2.93,2.93,2.93,2.93,2.93,2.93,2.93,2.93],[0,-3.57,-3.53,-3.49,-3.45,-3.37,-3.29,-3.21,-3.13,-3.05,-2.97,-2.9,-2.82,-2.74,-2.67,-2.59,-2.52,-2.44,-2.37,-2.29,-2.21,-2.14,-2.06,-1.99,-1.92,-1.84,-1.77,-1.69,-1.61,-1.53,-1.45,-1.37,-1.29,-1.22,-1.14,-1.06,-0.98,-0.91,-0.83,-0.75,-0.68,-0.6,-0.52,-0.45,-0.38,-0.31,-0.23,-0.16,-0.1,-0.05,0,0.05,0.08,0.1,0.11,0.11,0.1,0.09,0.07,0.04,0.02,-0.01,0.01,0.1,0.25,0.43,0.67,0.94,1.24,1.51,1.74,1.95,2.12,2.26,2.39,2.5,2.6,2.67,2.72,2.78,2.82,2.85,2.87,2.88,2.89,2.9,2.9,2.91,2.91,2.92,2.92,2.93,2.93,2.93,2.93,2.92,2.93,2.93,2.93,2.93]]]; const api = { EDGES, EP }; if (typeof module !== "undefined" && module.exports) module.exports = api; else root.V2EP = api; })(typeof globalThis !== "undefined" ? globalThis : this);
+
+;
+/* Football game engine (Coach Mode).
+   One state object holds the whole game (so it can be saved and resumed).  All randomness comes from a seeded generator stored in the state.
+   The matchup rules are in plain tables near the top: each offensive call is tried against each defensive call. */
+(function (root) {
+'use strict';
+const Teams = (typeof require !== 'undefined' && typeof module !== 'undefined') ? require('./teams.js') : root.V2Teams;
+const VERSION = 'v2proto-1';
+const OFF = ['RUN_IN', 'RUN_OUT', 'PASS_SH', 'PASS_MD', 'PASS_DP', 'PUNT', 'FG', 'KNEEL', 'SPIKE'];
+const DEF = ['STUFF', 'BAL', 'COVER', 'BLITZ'];
+const OFF_LABEL = { RUN_IN: 'Inside run', RUN_OUT: 'Outside run', PASS_SH: 'Short pass', PASS_MD: 'Medium pass', PASS_DP: 'Deep pass', PUNT: 'Punt', FG: 'Field goal', KNEEL: 'Kneel down', SPIKE: 'Spike the ball' };
+const DEF_LABEL = { STUFF: 'Run stuff (load the box)', BAL: 'Balanced', COVER: 'Pass coverage (drop back)', BLITZ: 'Blitz' };
+
+// ---------------- the matchup tables (columns follow DEF order: STUFF, BAL, COVER, BLITZ) ----------------
+const RUN = { RUN_IN: { mean: [3.0, 4.4, 5.8, 4.8], sd: 2.8, big: 0.09 }, RUN_OUT: { mean: [3.4, 4.5, 6.0, 6.0], sd: 3.4, big: 0.11 } };
+const PASS = {
+  PASS_SH: { comp: [0.76, 0.72, 0.72, 0.74], yds: 7.6, sd: 4.5, ydsAdj: [0.5, 0, -0.6, 1.5], sack: 0.6, int: 0.016, air: 6 },
+  PASS_MD: { comp: [0.63, 0.57, 0.51, 0.50], yds: 13.6, sd: 6.0, ydsAdj: [0.5, 0, -1.0, 2.0], sack: 1.0, int: 0.030, air: 15 },
+  PASS_DP: { comp: [0.44, 0.38, 0.30, 0.31], yds: 22.5, sd: 11.0, ydsAdj: [1.0, 0, -2.0, 3.0], sack: 1.35, int: 0.055, air: 30 }
+};
+const SACK = [0.045, 0.060, 0.040, 0.160];            // per dropback, by defensive call
+const INT_MULT = [1.0, 1.0, 1.2, 1.35];
+const FUMBLE = 0.012;
+
+// ---------------- random numbers (stored in the state, so a saved game continues identically) ----------------
+function hashSeed(str) { let h = [1779033703, 3144134277, 1013904242, 2773480762]; for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); for (let k = 0; k < 4; k++) h[k] = Math.imul(h[k] ^ c, 2654435761 + 2 * k + 1) >>> 0; h[(i + 1) % 4] ^= h[i % 4] >>> 13; } return h.map(x => x >>> 0); }
+function sfc(r) { let [a, b, c, d] = r; a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0; const t = (a + b + d) >>> 0; d = (d + 1) >>> 0; a = b ^ (b >>> 9); b = (c + (c << 3)) >>> 0; c = ((c << 21) | (c >>> 11)) >>> 0; c = (c + t) >>> 0; r[0] = a >>> 0; r[1] = b >>> 0; r[2] = c >>> 0; r[3] = d >>> 0; return t / 4294967296; }
+function makeRng(seedArr) { const r = seedArr.slice(); for (let i = 0; i < 12; i++) sfc(r); return () => sfc(r); }
+function stateRng(S) { return () => sfc(S.rng); }
+const nrm = r => { let u = 0; while (u === 0) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); };
+const expo = (r, m) => -m * Math.log(1 - r());
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const opp = t => (t === 'H' ? 'A' : 'H');
+
+// ---------------- setup ----------------
+function emptyStats() { return { firstDowns: 0, rushAtt: 0, rushYds: 0, passAtt: 0, passComp: 0, passYds: 0, sacksAllowed: 0, sackYdsLost: 0, ints: 0, fumblesLost: 0, punts: 0, puntYds: 0, thirdAtt: 0, thirdConv: 0, fourthAtt: 0, fourthConv: 0, plays: 0, totalYds: 0, top: 0, byQ: [0, 0, 0, 0, 0], fgMade: 0, fgAtt: 0, xpMade: 0, xpAtt: 0, twoMade: 0, twoAtt: 0, penalties: 0, defSacks: 0, defInts: 0 }; }
+function emptyPlayer(name, pos) { return { name, pos, passAtt: 0, passComp: 0, passYds: 0, passTD: 0, int: 0, rushAtt: 0, rushYds: 0, rushTD: 0, rec: 0, recYds: 0, recTD: 0, tkl: 0, sack: 0, defInt: 0, fgM: 0, fgA: 0, punts: 0, puntYds: 0, long: 0, fumLost: 0 }; }
+function newGame(seed, homeId, awayId, opts) {
+  opts = opts || {}; const teams = {}; const roster = {};
+  for (const [side, id] of [['H', homeId || 'PIL'], ['A', awayId || 'STA']]) {
+    const t = JSON.parse(JSON.stringify(Teams.TEAMS[id])); teams[side] = t; roster[side] = {};
+    for (const pos of Object.keys(t.players)) for (const nm of t.players[pos]) roster[side][nm] = emptyPlayer(nm, pos);
+  }
+  const S = { v: VERSION, seed: String(seed), rng: hashSeed('v2proto|' + seed), teams, q: 1, clock: 900, score: { H: 0, A: 0 }, poss: 'H', ball: 25, down: 1, toGo: 10, phase: 'KICKOFF', kickTeam: 'A', kickFrom: 30,
+    firstReceiver: 'H', ot: false, otFirstScore: false, stats: { H: emptyStats(), A: emptyStats() }, players: roster, drives: [], drive: null, log: [], playNo: 0, over: false, result: null, lastEvent: null, choices: [], quarterScores: { H: [0, 0, 0, 0, 0], A: [0, 0, 0, 0, 0] } };
+  advance(S); return S;
+}
+function light(S) { return { q: S.q, clock: S.clock, score: { H: S.score.H, A: S.score.A }, poss: S.poss, ball: S.ball, down: S.down, toGo: S.toGo, phase: S.phase, kickTeam: S.kickTeam, kickFrom: S.kickFrom, firstReceiver: S.firstReceiver, ot: S.ot, otFirstScore: S.otFirstScore, over: S.over, teams: S.teams, stats: null, players: null, drives: null, drive: null, log: null, playNo: S.playNo }; }
+const ensure = (S, side) => S.stats ? S.stats[side] : null;
+function pl(S, side, name) { return S.players ? S.players[side][name] : null; }
+function pick(r, arr, w) { let t = 0; for (const x of w) t += x; let u = r() * t; for (let i = 0; i < arr.length; i++) { u -= w[i]; if (u <= 0) return arr[i]; } return arr[arr.length - 1]; }
+
+// ---------------- scoring, drives, clock ----------------
+function addScore(S, side, pts) { S.score[side] += pts; if (S.quarterScores) S.quarterScores[side][Math.min(S.q, 5) - 1] += pts; if (S.ot) S.otFirstScore = true; }
+function openDrive(S, how) { if (S.drives) S.drive = { team: S.poss, startSpot: S.ball, startQ: S.q, startClock: S.clock, plays: 0, yards: 0, how, result: null, secs: 0 }; }
+function closeDrive(S, result) { if (S.drives && S.drive) { S.drive.result = result; S.drive.endSpot = S.ball; S.drives.push(S.drive); S.drive = null; } }
+function useClock(S, secs) { S.clock = Math.max(0, S.clock - secs); if (S.stats) { S.stats[S.poss].top += secs; } if (S.drive) S.drive.secs += secs; }
+
+function statName(S, side, pos, r, weights) { const arr = S.teams[side].players[pos]; return weights ? pick(r, arr, weights) : arr[Math.floor(r() * arr.length)]; }
+
+// ---------------- special teams ----------------
+function kickoff(S, r, fromSpot) {
+  const K = S.teams[S.kickTeam].units.kick, recv = opp(S.kickTeam), ev = { kind: 'kickoff', team: S.kickTeam, text: '' };
+  const d = 62 + 0.2 * (K - 50) + 6 * nrm(r), landing = fromSpot + d;          // yards from the kicking team's own goal line
+  let spot, txt;
+  if (landing >= 100) { if (r() < 0.35) { spot = clamp(Math.round(8 + expo(r, 10)), 1, 60); txt = 'returned from the end zone to the ' + spotText(S, recv, spot); } else { spot = 25; txt = 'touchback'; } }
+  else { const s0 = 100 - landing, ret = Math.max(0, 19 + 7 * nrm(r)); spot = clamp(Math.round(s0 + ret), 1, 99); txt = 'returned to the ' + spotText(S, recv, spot); if (r() < 0.004) { ev.td = true; } }
+  ev.text = S.teams[S.kickTeam].name + ' kick off; ' + txt + '.'; ev.spot = spot; ev.distance = Math.round(d);
+  S.poss = recv; S.phase = 'SNAP';
+  if (ev.td) { S.ball = 100; scoreTD(S, r, ev); return ev; }
+  S.ball = spot; S.down = 1; S.toGo = 10; openDrive(S, 'kickoff'); return ev;
+}
+function spotText(S, side, yardsFromOwnGoal) { const t = S.teams[side].city.split(' ')[0].toUpperCase().slice(0, 4); return yardsFromOwnGoal === 50 ? '50' : (yardsFromOwnGoal < 50 ? 'own ' + yardsFromOwnGoal : 'opp ' + (100 - yardsFromOwnGoal)); }
+function fieldText(S) { return S.ball === 50 ? 'midfield' : (S.ball < 50 ? 'own ' + S.ball : 'opponent ' + (100 - S.ball)); }
+
+function scoreTD(S, r, ev) { addScore(S, S.poss, 6); const st = ensure(S, S.poss); ev.score = 'TD'; ev.scorer = S.poss; ev.pts = 6; closeDrive(S, 'Touchdown'); S.phase = 'CONVERT'; S.convertTeam = S.poss; if (S.ot) { S.phase = 'SNAP'; endAfterOTscore(S); } }
+function endAfterOTscore(S) { S.over = true; S.phase = 'OVER'; finish(S); }
+
+function convProb(S, t, choice) { const u = S.teams[t].units, d = S.teams[opp(t)].units; return choice === '2PT' ? clamp(0.47 + 0.02 * ((u.passOff + u.runOff) / 2 - (d.passCover + d.runStop) / 2) / 10, 0.3, 0.6) : clamp(0.94 + 0.002 * (u.kick - 50), 0.85, 0.99); }
+function conversion(S, choice, r) {
+  r = r || stateRng(S); const t = S.convertTeam, u = S.teams[t].units, d = S.teams[opp(t)].units, ev = { kind: 'convert', team: t, choice };
+  const st = ensure(S, t); let ok;
+  if (choice === '2PT') { const p = clamp(0.47 + 0.02 * ((u.passOff + u.runOff) / 2 - (d.passCover + d.runStop) / 2) / 10, 0.3, 0.6); ok = r() < p; if (st) { st.twoAtt++; if (ok) st.twoMade++; } if (ok) { addScore(S, t, 2); ev.scorer = t; ev.pts = 2; } ev.text = (ok ? 'Two-point conversion is GOOD' : 'Two-point conversion fails') + ' (' + S.teams[t].name + ').'; }
+  else { const p = clamp(0.94 + 0.002 * (u.kick - 50), 0.85, 0.99); ok = r() < p; if (st) { st.xpAtt++; if (ok) st.xpMade++; } if (ok) { addScore(S, t, 1); ev.scorer = t; ev.pts = 1; } ev.text = (ok ? 'Extra point is good' : 'Extra point is NO GOOD') + ' (' + S.teams[t].name + ').'; }
+  ev.ok = ok; S.kickTeam = t; S.kickFrom = 30; S.phase = 'KICKOFF'; S.convertTeam = null;
+  if (S.log) logEvent(S, ev); return ev;
+}
+
+// ---------------- advance: kickoffs and quarter changes happen automatically ----------------
+function advance(S, rr) {
+  const r = rr || stateRng(S); let guard = 0;
+  while (!S.over && guard++ < 20) {
+    if (S.phase === 'CONVERT') return;
+    if (S.clock <= 0 && (S.phase === 'SNAP' || S.phase === 'KICKOFF')) { endQuarter(S, r); continue; }
+    if (S.phase === 'KICKOFF') { const ev = kickoff(S, r, S.kickFrom || 30); S.kickFrom = 30; if (S.log) logEvent(S, ev); continue; }
+    return;
+  }
+}
+function endQuarter(S, r) {
+  if (S.ot) { closeDrive(S, 'End of game'); if (S.score.H === S.score.A) { S.over = true; S.phase = 'OVER'; finish(S); } return; }
+  if (S.q === 1 || S.q === 3) { S.q++; S.clock = 900; return; }
+  if (S.q === 2) { closeDrive(S, 'End of half'); S.q = 3; S.clock = 900; S.kickTeam = S.firstReceiver; S.kickFrom = 30; S.phase = 'KICKOFF'; if (S.log) logEvent(S, { kind: 'info', text: 'HALFTIME. ' + S.teams.H.name + ' ' + S.score.H + ', ' + S.teams.A.name + ' ' + S.score.A + '.' }); return; }
+  closeDrive(S, 'End of game');
+  if (S.score.H !== S.score.A) { S.over = true; S.phase = 'OVER'; finish(S); return; }
+  S.ot = true; S.q = 5; S.clock = 900; S.otFirstScore = false; const first = r() < 0.5 ? 'H' : 'A'; S.kickTeam = opp(first); S.kickFrom = 30; S.phase = 'KICKOFF'; if (S.log) logEvent(S, { kind: 'info', text: 'Tied after regulation: sudden-death overtime. ' + S.teams[first].name + ' receive.' });
+}
+function finish(S) {
+  S.over = true; S.phase = 'OVER'; const h = S.score.H, a = S.score.A;
+  S.result = { H: h, A: a, winner: h === a ? null : (h > a ? 'H' : 'A'), ot: S.ot };
+  if (S.log) logEvent(S, { kind: 'info', text: 'FINAL: ' + S.teams.H.name + ' ' + h + ', ' + S.teams.A.name + ' ' + a + (S.ot ? ' (overtime)' : '') + (h === a ? ' (tie)' : '') });
+}
+function logEvent(S, ev) { ev.q = S.q; ev.clock = S.clock; ev.n = S.log.length; ev.score = ev.score || undefined; S.log.push(ev); S.lastEvent = ev; }
+
+// ---------------- one snap ----------------
+function legalOffense(S) {
+  if (S.phase !== 'SNAP' || S.over) return [];
+  const L = ['RUN_IN', 'RUN_OUT', 'PASS_SH', 'PASS_MD', 'PASS_DP', 'PUNT']; if (100 - S.ball + 17 <= 65) L.push('FG'); if (S.ball >= 3) L.push('KNEEL'); if (S.down < 4) L.push('SPIKE');
+  return L;
+}
+function snap(S, off, def, opts) {
+  opts = opts || {}; const r = opts.rng || stateRng(S); if (S.phase !== 'SNAP' || S.over) throw new Error('no snap available in phase ' + S.phase);
+  const O = S.poss, D = opp(O), u = S.teams[O].units, d = S.teams[D].units, di = DEF.indexOf(def), hurry = !!opts.hurry;
+  if (DEF.indexOf(def) < 0 || OFF.indexOf(off) < 0) throw new Error('bad call ' + off + '/' + def);
+  const stO = ensure(S, O), stD = ensure(S, D); const before = { down: S.down, toGo: S.toGo, ball: S.ball, clock: S.clock, q: S.q };
+  const ev = { kind: 'play', off, def, team: O, down: S.down, toGo: S.toGo, ball: S.ball, hurry, text: '', yards: 0, turnover: null };
+  S.playNo++;
+  if (S.drive) S.drive.plays++;
+  let yards = 0, tdFlag = false, turnover = null, newPoss = null, newBall = null, secs = 0, stopsClock = false, countsAsPlay = true, downConsumed = true;
+  const isRun = off === 'RUN_IN' || off === 'RUN_OUT', isPass = off.indexOf('PASS') === 0;
+  const sub = 'player';
+  if (off === 'KNEEL') { yards = -1; secs = 40; ev.text = S.teams[O].name + ' take a knee.'; ev.kind = 'play'; if (stO) { stO.plays++; } afterGain(S, O, ev, yards, r, { noStats: true, secs: 40 }); return finishSnap(S, r, ev, before); }
+  if (off === 'SPIKE') { secs = 3; ev.text = S.teams[O].name + ' spike the ball to stop the clock.'; S.down++; if (S.down > 4) { turnoverOnDowns(S, ev); } useClock(S, secs); if (stO) stO.plays++; if (S.stats) { const qb = pl(S, O, S.teams[O].players.QB[0]); qb.passAtt++; } if (stO) stO.passAtt++; return finishSnap(S, r, ev, before); }
+  if (off === 'PUNT') { return doPunt(S, r, ev, before); }
+  if (off === 'FG') { return doFG(S, r, ev, before); }
+  // ----- run or pass -----
+  const fumbleMult = hurry ? 1.5 : 1;
+  if (isRun) {
+    const m = RUN[off]; let mean = m.mean[di] + 0.5 * (u.runOff - d.runStop) / 10; let y;
+    if (r() < m.big) y = 14 + expo(r, 9); else { const mnb = (mean - m.big * 20) / (1 - m.big); y = mnb + m.sd * nrm(r); }
+    y = Math.round(clamp(y, -6, 99)); yards = y; secs = r() < 0.10 ? 8 : (hurry ? 17 : 42); stopsClock = secs === 8;
+    const rb = statName(S, O, 'RB', r, [0.72, 0.28]), defender = statName(S, D, r() < 0.6 ? 'LB' : 'DL', r); ev.carrier = rb; ev.tackler = defender;
+    if (stO) { stO.rushAtt++; stO.plays++; }
+    if (r() < FUMBLE * fumbleMult * (di === 3 ? 1.3 : 1)) { if (r() < 0.5) { turnover = 'FUMBLE'; ev.fumbleBy = rb; } }
+    ev.text = rb + ' runs ' + (off === 'RUN_IN' ? 'up the middle' : 'outside') + ' for ' + yardsText(yards) + '.'; ev.anim = { type: 'run', outside: off === 'RUN_OUT', yards };
+    if (turnover) { yards = Math.max(-2, Math.min(yards, 6)); ev.text = rb + ' runs for ' + yardsText(yards) + ' and FUMBLES; ' + S.teams[D].name + ' recover!'; }
+    afterGain(S, O, ev, yards, r, { rush: rb, tackler: defender, turnover, secs, stopsClock });
+  } else {
+    const P = PASS[off]; const z = (u.passOff - d.passCover) / 10; const prot = (u.prot - d.rush) / 10;
+    const pSack = clamp((SACK[di] * P.sack) - 0.015 * prot, 0.01, 0.30), qb = S.teams[O].players.QB[0];
+    if (stO) { stO.plays++; }
+    ev.passer = qb;
+    if (r() < pSack) {
+      const loss = Math.round(clamp(7 + 2 * nrm(r), 2, 14)); yards = -loss; const sacker = statName(S, D, r() < 0.7 ? 'DL' : 'LB', r); ev.tackler = sacker; secs = hurry ? 12 : 38;
+      ev.text = qb + ' is SACKED by ' + sacker + ' for a loss of ' + loss + '.'; ev.anim = { type: 'sack', yards };
+      if (stO) { stO.sacksAllowed++; stO.sackYdsLost += loss; } if (stD) stD.defSacks++; const p2 = pl(S, D, sacker); if (p2) p2.sack++;
+      if (r() < 0.10 && r() < 0.5) { turnover = 'FUMBLE'; ev.text += ' He FUMBLES and ' + S.teams[D].name + ' recover!'; }
+      afterGain(S, O, ev, yards, r, { sack: true, turnover, secs, stopsClock: false });
+    } else {
+      if (stO) stO.passAtt++; const pq = pl(S, O, qb); if (pq) pq.passAtt++;
+      const pc = clamp(P.comp[di] + 0.035 * z - (hurry ? 0.015 : 0), 0.08, 0.92);
+      const wr = pick(r, ['WR1', 'WR2', 'WR3', 'TE', 'RB'], off === 'PASS_SH' ? [0.24, 0.22, 0.18, 0.16, 0.20] : off === 'PASS_MD' ? [0.30, 0.28, 0.20, 0.15, 0.07] : [0.40, 0.33, 0.22, 0.05, 0]);
+      const target = wr === 'TE' ? S.teams[O].players.TE[0] : wr === 'RB' ? S.teams[O].players.RB[0] : S.teams[O].players.WR[+wr.slice(2) - 1]; ev.target = target;
+      if (r() < pc) {
+        let y = (P.yds + P.ydsAdj[di]) * (1 + 0.04 * z) + P.sd * nrm(r); 
+        y = Math.round(clamp(y, off === 'PASS_SH' ? 0 : 3, 99)); yards = y; const oob = r() < 0.25; secs = oob ? 9 : (hurry ? 18 : 40); stopsClock = oob; const tk = statName(S, D, r() < 0.5 ? 'DB' : 'LB', r); ev.tackler = tk;
+        ev.text = qb + ' complete to ' + target + ' for ' + yardsText(yards) + '.'; ev.anim = { type: 'pass', depth: P.air, yards, complete: true };
+        if (stO) { stO.passComp++; stO.passYds += yards; } if (pq) { pq.passComp++; pq.passYds += yards; } const pr = pl(S, O, target); if (pr) { pr.rec++; pr.recYds += yards; }
+        afterGain(S, O, ev, yards, r, { pass: true, target, qb, tackler: tk, secs, stopsClock });
+      } else {
+        const pi = clamp(P.int * INT_MULT[di] - 0.004 * z, 0.004, 0.2) / Math.max(0.01, 1 - pc);
+        secs = 7; stopsClock = true;
+        if (r() < pi) {
+          const picker = statName(S, D, 'DB', r), catchAt = clamp(S.ball + P.air, 0, 120), ret = Math.round(Math.max(0, 11 + expo(r, 6))); turnover = 'INT';
+          ev.text = qb + ' pass intended for ' + target + ' is INTERCEPTED by ' + picker + '.'; ev.anim = { type: 'pass', depth: P.air, yards: 0, complete: false, intercepted: true };
+          ev.turnover = 'INT'; if (stO) stO.ints++; if (stD) stD.defInts++; if (pq) pq.int++; const pd = pl(S, D, picker); if (pd) pd.defInt++;
+          let newSpot = catchAt >= 100 ? 20 : clamp(100 - catchAt + ret, 1, 99);
+          if (catchAt < 100 && r() < 0.03) { newSpot = 100; ev.text += ' He returns it for a TOUCHDOWN!'; }
+          useClock(S, 14); closeDrive(S, 'Interception'); S.poss = D; S.ball = newSpot; S.down = 1; S.toGo = Math.min(10, 100 - S.ball); openDrive(S, 'turnover');
+          if (newSpot >= 100) { S.ball = 100; scoreTD(S, r, ev); } return finishSnap(S, r, ev, before, true);
+        }
+        ev.text = qb + ' pass to ' + target + ' is incomplete.'; ev.anim = { type: 'pass', depth: P.air, yards: 0, complete: false };
+        yards = 0; afterGain(S, O, ev, 0, r, { pass: true, incomplete: true, secs, stopsClock });
+      }
+    }
+  }
+  return finishSnap(S, r, ev, before);
+}
+function yardsText(y) { return y === 0 ? 'no gain' : y > 0 ? y + (y === 1 ? ' yard' : ' yards') : 'a loss of ' + (-y) + (y === -1 ? ' yard' : ' yards'); }
+
+function afterGain(S, O, ev, yards, r, info) {
+  info = info || {}; const D = opp(O), stO = ensure(S, O); const startDown = S.down, startToGo = S.toGo;
+  if (!info.noStats && stO && !info.incomplete) { stO.totalYds += yards; if (info.pass === undefined && !info.sack) { stO.rushYds += yards; } if (info.sack) { /* counted as a pass play loss */ stO.passYds += 0; } }
+  if (S.drive) S.drive.yards += yards;
+  ev.yards = yards;
+  if (info.rush) { const pr0 = pl(S, O, info.rush); if (pr0) { pr0.rushAtt++; pr0.rushYds += yards; } }
+  if (info.turnover === 'FUMBLE') {
+    const spot = clamp(S.ball + yards, 1, 99); if (stO) { stO.fumblesLost++; stO.totalYds += yards; if (info.rush) stO.rushYds += yards; } const car = info.rush || ev.passer; const pc = car ? pl(S, O, car) : null; if (pc) pc.fumLost++;
+    useClock(S, info.secs || 12); closeDrive(S, 'Fumble'); ev.turnover = 'FUMBLE';
+    S.poss = D; S.ball = clamp(100 - spot, 1, 99); S.down = 1; S.toGo = Math.min(10, 100 - S.ball); openDrive(S, 'turnover'); return;
+  }
+  const newBall = S.ball + yards;
+  if (info.tackler) { const pt = pl(S, D, info.tackler); if (pt && !info.sack) pt.tkl++; }
+  if (newBall >= 100) {
+    ev.text += ' TOUCHDOWN ' + S.teams[O].name + '!'; ev.td = true; S.ball = 100; if (info.rush) { const pr = pl(S, O, info.rush); if (pr) pr.rushTD++; } if (info.pass && info.target) { const pt = pl(S, O, info.target); if (pt) pt.recTD++; const q = pl(S, O, info.qb || ev.passer); if (q) q.passTD++; }
+    useClock(S, info.secs || 10); if (stO) { stO.firstDowns++; if (startDown === 3) { stO.thirdAtt++; stO.thirdConv++; } if (startDown === 4) { stO.fourthAtt++; stO.fourthConv++; } } scoreTD(S, r, ev); return;
+  }
+  if (newBall <= 0) { ev.text += ' SAFETY!'; ev.safety = true; ev.scorer = D; ev.pts = 2; useClock(S, info.secs || 10); closeDrive(S, 'Safety'); addScore(S, D, 2); S.kickTeam = O; S.kickFrom = 20; S.phase = 'KICKOFF'; if (S.ot) { endAfterOTscore(S); } return; }
+  S.ball = newBall; useClock(S, info.secs || 30);
+  if (info.pass && info.qb) { const q = pl(S, O, info.qb); }
+  if (yards >= startToGo) { S.down = 1; S.toGo = Math.min(10, 100 - S.ball); if (stO) stO.firstDowns++; ev.firstDown = true; ev.text += ' First down.'; if (startDown === 3 && stO) { stO.thirdAtt++; stO.thirdConv++; } if (startDown === 4 && stO) { stO.fourthAtt++; stO.fourthConv++; } return; }
+  if (startDown === 3 && stO) stO.thirdAtt++; if (startDown === 4 && stO) stO.fourthAtt++;
+  S.down++; S.toGo = startToGo - yards; if (S.toGo > 99) S.toGo = 99;
+  if (S.down > 4) turnoverOnDowns(S, ev);
+}
+function turnoverOnDowns(S, ev) { const O = S.poss; closeDrive(S, 'Turnover on downs'); ev.turnover = 'DOWNS'; ev.text += ' Turnover on downs.'; S.poss = opp(O); S.ball = clamp(100 - S.ball, 1, 99); S.down = 1; S.toGo = Math.min(10, 100 - S.ball); openDrive(S, 'turnover'); }
+function doPunt(S, r, ev, before) {
+  const O = S.poss, D = opp(O), u = S.teams[O].units, stO = ensure(S, O); const gross = Math.round(clamp(41 + 0.25 * (u.punt - 50) + 6 * nrm(r), 20, 70)); const punter = S.teams[O].players.P[0];
+  ev.text = ''; if (stO) { stO.plays++; stO.punts++; stO.puntYds += gross; } const pp = pl(S, O, punter); if (pp) { pp.punts++; pp.puntYds += gross; }
+  let landing = S.ball + gross; useClock(S, 15); closeDrive(S, 'Punt'); ev.anim = { type: 'punt', yards: gross };
+  if (r() < 0.008) { ev.text = punter + ' punt is BLOCKED! ' + S.teams[D].name + ' take over.'; S.poss = D; S.ball = clamp(100 - S.ball, 1, 99); S.down = 1; S.toGo = Math.min(10, 100 - S.ball); openDrive(S, 'turnover'); ev.turnover = 'BLOCK'; return finishSnap(S, r, ev, before, true); }
+  let spot, txt;
+  if (landing >= 100) { spot = 20; txt = 'touchback'; } else { const fair = r() < 0.2; const ret = fair ? 0 : Math.round(Math.max(0, 8 + 5 * nrm(r))); spot = clamp(100 - landing + ret, 1, 99); txt = fair ? 'fair catch at the ' : 'returned to the '; txt = txt === 'touchback' ? txt : txt + spotText(S, D, spot); }
+  ev.text = punter + ' punts ' + gross + ' yards; ' + txt + '.'; S.poss = D; S.ball = spot; S.down = 1; S.toGo = Math.min(10, 100 - spot); openDrive(S, 'punt');
+  return finishSnap(S, r, ev, before, true);
+}
+function doFG(S, r, ev, before) {
+  const O = S.poss, D = opp(O), u = S.teams[O].units, stO = ensure(S, O), dist = 100 - S.ball + 17, kicker = S.teams[O].players.K[0];
+  const p = clamp(1 / (1 + Math.exp((dist - 51.5 - 0.15 * (u.kick - 50)) / 4.2)), 0.001, 0.99); useClock(S, 10); if (stO) { stO.plays++; stO.fgAtt++; } const pk = pl(S, O, kicker); if (pk) pk.fgA++;
+  ev.anim = { type: 'fg', yards: dist }; ev.dist = dist;
+  if (r() < 0.02) { ev.text = kicker + ' ' + dist + '-yard field goal is BLOCKED.'; ev.made = false; closeDrive(S, 'Blocked FG'); S.poss = D; S.ball = clamp(100 - S.ball, 1, 99); S.down = 1; S.toGo = Math.min(10, 100 - S.ball); openDrive(S, 'turnover'); return finishSnap(S, r, ev, before, true); }
+  if (r() < p) {
+    ev.made = true; ev.text = kicker + ' ' + dist + '-yard field goal is GOOD.'; ev.score = 'FG'; addScore(S, O, 3); ev.scorer = O; ev.pts = 3; if (stO) stO.fgMade++; if (pk) { pk.fgM++; pk.long = Math.max(pk.long, dist); } closeDrive(S, 'Field goal');
+    S.kickTeam = O; S.kickFrom = 30; S.phase = 'KICKOFF'; if (S.ot) { endAfterOTscore(S); } return finishSnap(S, r, ev, before, true);
+  }
+  ev.made = false; ev.text = kicker + ' ' + dist + '-yard field goal is NO GOOD.'; closeDrive(S, 'Missed FG'); S.poss = D; S.ball = Math.max(20, clamp(100 - S.ball + 7, 1, 99)); S.down = 1; S.toGo = 10; openDrive(S, 'turnover');
+  return finishSnap(S, r, ev, before, true);
+}
+function finishSnap(S, r, ev, before, skipLogOrder) {
+  if (S.log) logEvent(S, ev);
+  if (S.stats && S.stats.H) { /* quarter-by-quarter handled in addScore */ }
+  if (!S.over) advance(S, r);
+  return ev;
+}
+function postConversion(S, choice) { const ev = conversion(S, choice); advance(S); return ev; }
+
+const api = { VERSION, OFF, DEF, OFF_LABEL, DEF_LABEL, RUN, PASS, SACK, newGame, snap, postConversion, advance, legalOffense, light, opp, makeRng, stateRng, hashSeed, nrm, expo, clamp, fieldText, spotText, yardsText, conversion, convProb };
+if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.V2Engine = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+;
+/* VERSION 2 PROTOTYPE: win-chance model, play recommender and computer opponent.  NEW code.
+   How it works (plain English): for the current situation, every offensive call is tried against every defensive call many times using the game's own rules (same random-number
+   tools, but a separate stream, so it never changes the real game).  Each try ends in a game situation; the situation is turned into a win chance (score, time left and field position).
+   The table of win chances is a small "game": the offense wants a high number, the defense a low one.  The computer finds the offense's and defense's best mix.
+   Recommendation = the best call against what the computer opponent is likely to do.  The computer opponent picks at random from its best mix, so it is not predictable.  */
+(function (root) {
+'use strict';
+const isNode = typeof module !== 'undefined' && module.exports;
+const E = isNode ? require('./engine.js') : root.V2Engine, EPT = isNode ? require('./eptable.js') : root.V2EP;
+const { OFF, DEF, OFF_LABEL, DEF_LABEL, opp } = E;
+const EDGES = EPT.EDGES, EPT_ = EPT.EP;
+const bucket = t => { for (let i = 0; i < EDGES.length; i++) if (t <= EDGES[i]) return i; return EDGES.length - 1; };
+function epLookup(down, toGo, ball) { return EPT_[down - 1][bucket(toGo)][Math.max(1, Math.min(99, ball))]; }
+const EP_KICK = epLookup(1, 10, 25);
+let SIGMA = 18, SKILL_T = 0;      // spread of final margin for a whole game; seconds the leader can burn while holding the ball (tuned in tests/test_reco.js)
+function erf(x) { const s = x < 0 ? -1 : 1; x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x); const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return s * y; }
+const Phi = z => 0.5 * (1 + erf(z / Math.SQRT2));
+function secsLeft(L) { return L.ot ? L.clock : (L.q <= 4 ? (4 - L.q) * 900 : 0) + L.clock; }
+function wpFrom(L, side) {
+  if (L.over) { const m = L.score[side] - L.score[opp(side)]; return m > 0 ? 1 : m < 0 ? 0 : 0.5; }
+  const T = secsLeft(L); let who, v;
+  if (L.phase === 'SNAP') { who = L.poss; const m = L.score[who] - L.score[opp(who)]; v = m + epLookup(L.down, L.toGo, L.ball) * Math.min(1, T / 240); }
+  else if (L.phase === 'CONVERT') { who = L.convertTeam || L.poss; const m = L.score[who] - L.score[opp(who)]; v = m + 0.94 - EP_KICK * Math.min(1, T / 240); }
+  else { who = L.kickTeam; const m = L.score[who] - L.score[opp(who)]; v = m - EP_KICK * Math.min(1, T / 240); }
+  let Te = T; if (L.phase === 'SNAP' && L.score[who] - L.score[opp(who)] > 0) Te = Math.max(0, T - SKILL_T);
+  let sd = L.ot ? 6 : Math.max(0.5, SIGMA * Math.sqrt(Te / 3600));
+  if (L.ot && L.phase === 'SNAP') v += 0;                       // sudden death: the next score decides it; the expected-points term already favors the team with the ball
+  const p = Phi(v / sd); return side === who ? p : 1 - p;
+}
+
+function sig(S) { return [S.q, S.clock, S.ball, S.down, S.toGo, S.score.H, S.score.A, S.poss, S.phase].join('|'); }
+function rowsFor(S) {
+  const L = E.legalOffense(S); const T = secsLeft(S), tempo = T <= 600 || (S.q === 2 && S.clock <= 240); const rows = [];
+  for (const o of L) { rows.push({ off: o, hurry: false }); if (tempo && o.indexOf('RUN') === 0 || tempo && o.indexOf('PASS') === 0) rows.push({ off: o, hurry: true }); }
+  return rows;
+}
+const NO_DEF = o => o === 'PUNT' || o === 'FG' || o === 'KNEEL' || o === 'SPIKE';
+function analyze(S, N) {
+  N = N || 160; const rows = rowsFor(S), side = S.poss, sg = sig(S); const seeds = []; for (let i = 0; i < N; i++) seeds.push(E.hashSeed(sg + '#' + i));
+  const cells = [], W = [];
+  for (const row of rows) {
+    const wr = [], cr = [];
+    for (let j = 0; j < DEF.length; j++) {
+      if (NO_DEF(row.off) && j > 0) { wr.push(wr[0]); cr.push(cr[0]); continue; }
+      let w = 0, yds = 0, first = 0, td = 0, to = 0, made = 0, n = 0;
+      for (let i = 0; i < N; i++) {
+        const L = E.light(S); const ev = E.snap(L, row.off, DEF[j], { rng: E.makeRng(seeds[i]), hurry: row.hurry });
+        w += wpFrom(L, side); yds += ev.yards || 0; if (ev.firstDown || ev.td) first++; if (ev.td && ev.team === side) td++; if (ev.turnover) to++; if (ev.made) made++; n++;
+      }
+      wr.push(w / n); cr.push({ yds: yds / n, first: first / n, td: td / n, to: to / n, made: made / n });
+    }
+    W.push(wr); cells.push(cr);
+  }
+  const sol = solve(W);
+  return { S: { q: S.q, clock: S.clock, ball: S.ball, down: S.down, toGo: S.toGo, poss: S.poss }, rows, W, cells, x: sol.x, y: sol.y, value: sol.v, N };
+}
+function solve(W) {
+  const m = W.length, n = W[0].length, rx = new Array(m).fill(0), ry = new Array(n).fill(0), sx = new Array(m).fill(0), sy = new Array(n).fill(0);
+  let x = new Array(m).fill(1 / m), y = new Array(n).fill(1 / n);
+  for (let it = 0; it < 3000; it++) {
+    const ux = new Array(m).fill(0), uy = new Array(n).fill(0);
+    for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) { ux[i] += W[i][j] * y[j]; uy[j] += W[i][j] * x[i]; }
+    const vx = x.reduce((a, p, i) => a + p * ux[i], 0);       // value if both follow the current mixes
+    for (let i = 0; i < m; i++) rx[i] = Math.max(0, rx[i] + ux[i] - vx);
+    for (let j = 0; j < n; j++) ry[j] = Math.max(0, ry[j] + vx - uy[j]);
+    const tx = rx.reduce((a, b) => a + b, 0), ty = ry.reduce((a, b) => a + b, 0);
+    x = rx.map(v => tx > 0 ? v / tx : 1 / m); y = ry.map(v => ty > 0 ? v / ty : 1 / n);
+    for (let i = 0; i < m; i++) sx[i] += x[i]; for (let j = 0; j < n; j++) sy[j] += y[j];
+  }
+  const X = sx.map(v => v / 3000), Y = sy.map(v => v / 3000); let v = 0; for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) v += X[i] * W[i][j] * Y[j];
+  return { x: X, y: Y, v };
+}
+const label = r => OFF_LABEL[r.off] + (r.hurry ? ' (hurry-up)' : '');
+const pct = p => Math.round(p * 100) + '%';
+function bestOffense(A) {   // best response to the computer defense's mix
+  const sc = A.rows.map((r, i) => ({ i, row: r, wp: A.W[i].reduce((a, w, j) => a + w * A.y[j], 0) })); sc.sort((a, b) => b.wp - a.wp); return sc;
+}
+function bestDefense(A) {   // best response to the computer offense's mix
+  const sc = DEF.map((d, j) => ({ j, def: d, wp: A.W.reduce((a, row, i) => a + row[j] * A.x[i], 0) })); sc.sort((a, b) => a.wp - b.wp); return sc;
+}
+function expectedCell(A, i) { const c = A.cells[i], out = { yds: 0, first: 0, to: 0, td: 0, made: 0 }; for (let j = 0; j < DEF.length; j++) for (const k of Object.keys(out)) out[k] += A.y[j] * c[j][k]; return out; }
+function situationWords(S) {
+  const dn = ['1st', '2nd', '3rd', '4th'][S.down - 1], where = E.fieldText(S), T = secsLeft(S), m = S.score[S.poss] - S.score[opp(S.poss)];
+  let t = dn + ' and ' + S.toGo + ' at ' + where; if (S.q >= 4 || (S.q === 2 && S.clock < 150)) t += ', ' + Math.floor(S.clock / 60) + ':' + String(S.clock % 60).padStart(2, '0') + ' left in the ' + (S.q === 2 ? 'half' : S.q === 4 ? 'game' : 'overtime'); if (m !== 0 && (S.q >= 3 || T < 600)) t += ', ' + (m > 0 ? 'leading' : 'trailing') + ' by ' + Math.abs(m);
+  return t;
+}
+function recommendOffense(S, N) {
+  const A = analyze(S, N), sc = bestOffense(A), best = sc[0]; const bestPlayKey = best.row.off; const alt = sc.find(s => s.row.off !== bestPlayKey);
+  const ex = expectedCell(A, best.i); let why;
+  if (bestPlayKey === 'PUNT') why = 'Punt: gives the ball up but flips the field; going for it or kicking would leave you worse off here.';
+  else if (bestPlayKey === 'FG') why = 'Field goal: about ' + pct(ex.made) + ' to make it from here, and the points are worth more than the risk of failing on downs.';
+  else if (bestPlayKey === 'KNEEL') why = 'Kneel down: the lead is safe; run the clock.';
+  else if (bestPlayKey === 'SPIKE') why = 'Spike the ball: stops the clock for a down; time matters more than the down.';
+  else why = OFF_LABEL[bestPlayKey] + (best.row.hurry ? ' with a hurry-up' : '') + ': expected about ' + ex.yds.toFixed(1) + ' yards, ' + pct(ex.first) + ' chance of a first down' + (ex.to > 0.04 ? ', ' + pct(ex.to) + ' risk of a turnover' : '') + ', against the defense you are most likely to see.';
+  const parts = [why];
+  if (alt) parts.push('Win chance ' + (best.wp * 100).toFixed(1) + '% versus ' + (alt.wp * 100).toFixed(1) + '% for ' + label(alt.row) + '.');
+  if (S.down === 4) { const g = sc.filter(s => !s.row.hurry); const pick = k => g.find(s => s.row.off === k), go = g.filter(s => s.row.off.indexOf('RUN') === 0 || s.row.off.indexOf('PASS') === 0)[0], pu = pick('PUNT'), fg = pick('FG'); parts.push('On 4th down: ' + [go && ('go for it ' + (go.wp * 100).toFixed(1) + '%'), pu && ('punt ' + (pu.wp * 100).toFixed(1) + '%'), fg && ('field goal ' + (fg.wp * 100).toFixed(1) + '%')].filter(Boolean).join(', ') + '.'); }
+  return { play: best.row.off, hurry: best.row.hurry, label: label(best.row), why: parts.join(' '), situation: situationWords(S), wp: best.wp, ranking: sc.map(s => ({ play: s.row.off, hurry: s.row.hurry, label: label(s.row), wp: s.wp })), analysis: A };
+}
+function recommendDefense(S, N, A) {
+  A = A || analyze(S, N); const sc = bestDefense(A), best = sc[0];
+  let pPass = 0, pRun = 0; A.rows.forEach((r, i) => { if (r.off.indexOf('PASS') === 0) pPass += A.x[i]; else if (r.off.indexOf('RUN') === 0) pRun += A.x[i]; });
+  const kick = A.rows.reduce((a, r, i) => a + ((r.off === 'PUNT' || r.off === 'FG') ? A.x[i] : 0), 0);
+  let why = DEF_LABEL[best.def].split(' (')[0] + ': the offense is most likely to ' + (kick > 0.55 ? 'kick' : pPass > pRun ? 'pass (about ' + pct(pPass / Math.max(0.01, pPass + pRun)) + ' of its plays)' : 'run (about ' + pct(pRun / Math.max(0.01, pPass + pRun)) + ' of its plays)') + '; this call gives your team the best chances against that.';
+  const alt = sc[1]; if (alt) why += ' Win chance for you ' + ((1 - best.wp) * 100).toFixed(1) + '% versus ' + ((1 - alt.wp) * 100).toFixed(1) + '% for ' + DEF_LABEL[alt.def].split(' (')[0] + '.';
+  return { def: best.def, label: DEF_LABEL[best.def], why, situation: situationWords(S), wpDefense: 1 - best.wp, ranking: sc.map(s => ({ def: s.def, label: DEF_LABEL[s.def], wpDefense: 1 - s.wp })) };
+}
+function sample(r, probs) { let u = r(), t = probs.reduce((a, b) => a + b, 0); u *= t; for (let i = 0; i < probs.length; i++) { u -= probs[i]; if (u <= 0) return i; } return probs.length - 1; }
+function aiOffense(S, how, N, rng) { const A = analyze(S, N); let i; if (how === 'best') i = bestOffense(A)[0].i; else i = sample(rng || E.stateRng(S), A.x); return { play: A.rows[i].off, hurry: A.rows[i].hurry, analysis: A }; }
+function aiDefense(S, how, N, rng, A) { A = A || analyze(S, N); let j; if (how === 'best') j = bestDefense(A)[0].j; else j = sample(rng || E.stateRng(S), A.y); return { def: DEF[j], analysis: A }; }
+function conversionAdvice(S) {
+  const t = S.convertTeam, pk = E.convProb(S, t, 'XP'), p2 = E.convProb(S, t, '2PT'); const mk = (pts) => { const L = E.light(S); L.convertTeam = t; L.score[t] += pts; L.phase = 'KICKOFF'; L.kickTeam = t; return wpFrom(L, t); };
+  const wx = pk * mk(1) + (1 - pk) * mk(0), w2 = p2 * mk(2) + (1 - p2) * mk(0), choice = w2 > wx + 0.002 ? '2PT' : 'XP';
+  return { choice, wpXP: wx, wp2PT: w2, pXP: pk, p2PT: p2, why: (choice === '2PT' ? 'Go for two' : 'Kick the extra point') + ': ' + (choice === '2PT' ? 'the ' + pct(p2) + ' chance at 2 points beats the ' + pct(pk) + ' chance at 1 point' : 'the safer point is worth more here') + ' (win chance ' + ((choice === '2PT' ? w2 : wx) * 100).toFixed(1) + '% versus ' + ((choice === '2PT' ? wx : w2) * 100).toFixed(1) + '%).' };
+}
+function setTuning(sigma, skill) { if (sigma) SIGMA = sigma; if (skill !== undefined) SKILL_T = skill; }
+const api = { analyze, recommendOffense, recommendDefense, aiOffense, aiDefense, conversionAdvice, wpFrom, epLookup, solve, setTuning, secsLeft, situationWords, bestOffense, bestDefense, label };
+if (isNode) module.exports = api; else root.V2Reco = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+;
+/* Coach Mode page logic. Uses V2Engine / V2Reco; the human controls one side, the computer the other. */
+(function(){
+'use strict';
+const E=V2Engine,R=V2Reco,T=V2Teams.TEAMS;const N_AN=160;
+const $=id=>document.getElementById(id);
+let S=null,me='H',busy=false,anCache=null,tab='box',lastRec=null,pendingHurry=false,runAll=false;
+const FAST=/fast=1/.test(location.search);
+const cyrb=s=>{let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16)};
+const opp=E.opp,name=s=>S.teams[s].name,pct=x=>(x*100).toFixed(1)+'%';
+const manual=()=>$('optManual').checked,fast=()=>FAST||$('optFast').checked;
+function clockText(){const c=S.clock;return Math.floor(c/60)+':'+String(c%60).padStart(2,'0')}
+function qtrText(){return S.over?'FINAL':(S.ot?'Overtime':['','1st','2nd','3rd','4th'][S.q]+' quarter')}
+function an(){if(!anCache||anCache.sig!==sigOf())anCache={sig:sigOf(),A:R.analyze(S,N_AN)};return anCache.A}
+function sigOf(){return [S.playNo,S.q,S.clock,S.poss,S.ball,S.down,S.toGo,S.score.H,S.score.A,S.phase].join('|')}
+/* ---------- new / save / load ---------- */
+function newGame(seed,side){S=E.newGame(seed||String(Date.now()),'PIL','STA');me=side||'H';anCache=null;runAll=false;banner('Kickoff! '+(S.lastEvent?S.lastEvent.text:''));refresh();checkEnd()}
+function payload(){return JSON.stringify({me,manual:manual(),state:S})}
+function saveObj(){const p=payload();return JSON.stringify({fmt:'WIHS-V2-PROTO',ver:E.VERSION,saved:new Date().toISOString(),sum:cyrb(p),data:p})}
+function loadObj(txt){let o;try{o=JSON.parse(txt)}catch(e){throw new Error('This is not a saved game file.')}
+ if(!o||o.fmt!=='WIHS-V2-PROTO')throw new Error('This file is not a Version 2 prototype save.');if(cyrb(o.data)!==o.sum)throw new Error('The save file was changed or damaged (checksum does not match). It was not loaded.');
+ const d=JSON.parse(o.data);S=d.state;me=d.me;$('optManual').checked=!!d.manual;anCache=null;runAll=false;banner('Game loaded. '+qtrText()+', '+clockText()+' left.');refresh()}
+function autosave(){if(!S||(!S.playNo&&!S.over))return;try{localStorage.setItem('wihs_v2_autosave',saveObj())}catch(e){}}
+$('bSave').onclick=()=>{const b=new Blob([saveObj()],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='whatifhestayed_v2_save_'+S.playNo+'plays.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);banner('Saved to a file in your downloads.')};
+$('bLoad').onclick=()=>$('fLoad').click();
+$('fLoad').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{loadObj(r.result)}catch(x){alert(x.message)}};r.readAsText(f);e.target.value=''};
+$('bResume').onclick=()=>{let t=null;try{t=localStorage.getItem('wihs_v2_autosave')}catch(e){}if(!t){alert('No automatic save found in this browser.');return}try{loadObj(t)}catch(x){alert(x.message)}};
+$('bNew').onclick=()=>{const d=$('dlg');$('dlgBody').innerHTML='<h3>New game</h3><p>You coach one team; the computer coaches the other. Both teams are made up.</p><p><label>Your team: <select id="selSide"><option value="H">Harbor City Pilots (home): pass-first</option><option value="A">Prairie Ridge Stallions (away): run-first</option></select></label></p><p><label>Game number (same number = same game if you make the same calls): <input type="text" id="selSeed" size="12" placeholder="random"></label></p><div class="row"><button class="primary" id="goNew">Kick off</button><button id="cancelNew">Cancel</button></div>';
+ d.showModal();$('cancelNew').onclick=()=>d.close();$('goNew').onclick=()=>{const sd=$('selSeed').value.trim(),sd2=sd||String(Date.now());const sd3=$('selSide').value;d.close();newGame(sd2,sd3)}};
+$('optManual').onchange=()=>{refresh()};
+/* ---------- display ---------- */
+function banner(t){$('banner').textContent=t}
+function refresh(){if(!S)return;
+ const ph=(s)=>({[s]:1});
+ $('nmA').textContent=S.teams.A.city+' '+S.teams.A.name;$('nmB').textContent=S.teams.H.city+' '+S.teams.H.name;$('swA').style.background=S.teams.A.color;$('swB').style.background=S.teams.H.color;
+ $('ptA').textContent=S.score.A;$('ptB').textContent=S.score.H;$('tmA').classList.toggle('has',S.poss==='A'&&!S.over);$('tmB').classList.toggle('has',S.poss==='H'&&!S.over);
+ $('clk').textContent=clockText();$('qtr').textContent=qtrText();
+ $('sit').textContent=S.over?'':(S.phase==='CONVERT'?'After the touchdown':R_sit());
+ drawField();controls();panel();follow();autosave()}
+function R_sit(){const dn=['','1st','2nd','3rd','4th'][S.down];const tg=(100-S.ball<=S.toGo&&S.toGo>=100-S.ball)?'goal':S.toGo;return dn+' & '+tg+' at '+E.fieldText(S)}
+function follow(){const c=S.choices||[],n=c.length,f=c.filter(x=>x.followed).length;$('followBox').innerHTML=manual()?'Recommendations are hidden.':(n?'You followed the recommendation on <b>'+f+'</b> of <b>'+n+'</b> decisions.':'No decisions yet.')}
+/* ---------- controls ---------- */
+function controls(){const c=$('ctl');c.innerHTML='';
+ if(!S)return;
+ if(S.over){const w=S.result.winner;c.innerHTML='<div class="card"><div class="over">FINAL: '+(w?name(w)+' win':'Tie game')+(S.ot?' (overtime)':'')+'</div><p>'+S.teams.H.name+' '+S.score.H+', '+S.teams.A.name+' '+S.score.A+'</p><p class="muted">'+(manual()?'':follow_text())+'</p><button class="primary" onclick="document.getElementById(\'bNew\').click()">Play again</button></div>';return}
+ if(busy||runAll){c.innerHTML='<div class="card"><h3>'+(runAll?'Computer is playing the rest of the game':'Play in progress')+'</h3>'+(runAll?'<button id="bStop">Stop and take over</button>':'')+'</div>';if(runAll)$('bStop').onclick=()=>{runAll=false;controls()};return}
+ if(S.phase==='CONVERT'){ctlConvert(c);return}
+ if(S.poss===me)ctlOffense(c);else ctlDefense(c)}
+function follow_text(){const cc=S.choices||[];return cc.length?'You followed the recommendation on '+cc.filter(x=>x.followed).length+' of '+cc.length+' decisions.':''}
+function recCard(c,title,big,why,sit){const d=document.createElement('div');d.className='card reco';d.innerHTML='<h3>'+title+'</h3><div class="muted" style="margin-bottom:4px">'+sit+'</div><div class="big">'+big+'</div><div class="why">'+why+'</div><div class="row" id="recBtns"></div>';c.appendChild(d);return d.querySelector('#recBtns')}
+function addBtn(parent,text,cls,fn){const b=document.createElement('button');b.textContent=text;if(cls)b.className=cls;b.onclick=fn;parent.appendChild(b);return b}
+function ctlOffense(c){const A=an(),rec=R.recommendOffense(S,N_AN,A);lastRec=rec;const hurryAllowed=A.rows.some(r=>r.hurry);
+ const sit=R_sit()+' · '+qtrText()+' '+clockText();
+ if(!manual()){const bt=recCard(c,'Computer recommends',rec.label,rec.why,sit);addBtn(bt,'Accept recommendation','primary',()=>callOffense(rec.play,rec.hurry,true))}
+ else{const d=document.createElement('div');d.className='card';d.innerHTML='<h3>Your call</h3><div class="muted">'+sit+'</div>';c.appendChild(d)}
+ const d=document.createElement('div');d.className='card';d.innerHTML='<h3>'+(manual()?'Pick a play':'Or choose a different play')+'</h3><div class="plays" id="plays"></div><label class="chk"><input type="checkbox" id="hurry"> Hurry-up (no huddle): saves clock, slightly riskier</label><div class="row"><button id="bAuto">Let the computer handle this play</button><button id="bAll">Computer plays the rest of the game</button></div>';c.appendChild(d);
+ const wpOf=(p,h)=>{const x=rec.ranking.find(r=>r.play===p&&!!r.hurry===!!h);return x?x.wp:null};
+ const hurry=d.querySelector('#hurry');hurry.checked=pendingHurry;hurry.onchange=()=>{pendingHurry=hurry.checked;controls()};
+ const best=!manual()?rec.ranking.filter(r=>!!r.hurry===pendingHurry)[0]:null;
+ E.legalOffense(S).forEach(p=>{const w=wpOf(p,pendingHurry);const b=document.createElement('button');b.innerHTML='<span>'+E.OFF_LABEL[p]+'</span>'+(!manual()&&w!=null?'<span class="w">'+(w*100).toFixed(1)+'%</span>':'');if(best&&best.play===p)b.classList.add('best');b.onclick=()=>callOffense(p,pendingHurry&&!['PUNT','FG','KNEEL','SPIKE'].includes(p),false);$('plays').appendChild(b)});
+ d.querySelector('#bAuto').onclick=()=>{const b=R.bestOffense(A)[0];callOffense(b.row.off,b.row.hurry,true,true)};
+ d.querySelector('#bAll').onclick=()=>{runRest()};
+ if(!manual()){const n=document.createElement('div');n.className='muted';n.style.fontSize='12px';n.textContent='Percentages are your chance of winning the game after each call, against the computer\'s likely defense.';d.appendChild(n)}}
+function ctlDefense(c){const A=an(),rec=R.recommendDefense(S,N_AN,A);lastRec=rec;const sit=R_sit()+' · '+name(S.poss)+' have the ball · '+qtrText()+' '+clockText();
+ if(!manual()){const bt=recCard(c,'Computer recommends (defense)',rec.label,rec.why,sit);addBtn(bt,'Accept recommendation','primary',()=>callDefense(rec.def,true))}
+ else{const d=document.createElement('div');d.className='card';d.innerHTML='<h3>Your call (defense)</h3><div class="muted">'+sit+'</div>';c.appendChild(d)}
+ const d=document.createElement('div');d.className='card';d.innerHTML='<h3>'+(manual()?'Pick a defense':'Or choose a different defense')+'</h3><div class="plays" id="plays"></div><div class="row" style="margin-top:8px"><button id="bAuto">Let the computer handle this play</button><button id="bAll">Computer plays the rest of the game</button></div>';c.appendChild(d);
+ E.DEF.forEach(k=>{const x=rec.ranking.find(r=>r.def===k);const b=document.createElement('button');b.innerHTML='<span>'+E.DEF_LABEL[k]+'</span>'+(!manual()&&x?'<span class="w">'+(x.wpDefense*100).toFixed(1)+'%</span>':'');if(!manual()&&rec.def===k)b.classList.add('best');b.onclick=()=>callDefense(k,false);$('plays').appendChild(b)});
+ d.querySelector('#bAuto').onclick=()=>callDefense(rec.def,true,true);d.querySelector('#bAll').onclick=()=>runRest()}
+function ctlConvert(c){const t=S.convertTeam;if(t!==me){const ch=R.conversionAdvice(S).choice;setTimeout(()=>doConvert(ch,false,true),fast()?0:500);c.innerHTML='<div class="card"><h3>'+name(t)+' decide</h3></div>';return}
+ const adv=R.conversionAdvice(S);const d=document.createElement('div');d.className='card'+(manual()?'':' reco');d.innerHTML='<h3>Touchdown! Extra point or two-point try?</h3>'+(manual()?'':'<div class="why">'+adv.why+'</div>')+'<div class="row" id="cv"></div><div class="row" style="margin-top:8px"><button id="bAuto">Let the computer decide</button></div>';c.appendChild(d);
+ const xp='Kick extra point (1 pt, '+Math.round(adv.pXP*100)+'%)',tp='Go for two (2 pts, '+Math.round(adv.p2PT*100)+'%)';
+ addBtn($('cv'),xp,!manual()&&adv.choice==='XP'?'primary':'',()=>doConvert('XP',adv.choice==='XP'));addBtn($('cv'),tp,!manual()&&adv.choice==='2PT'?'primary':'',()=>doConvert('2PT',adv.choice==='2PT'));
+ d.querySelector('#bAuto').onclick=()=>doConvert(adv.choice,true,true)}
+/* ---------- taking turns ---------- */
+function record(kind,recLabel,chosenLabel,followed,auto){if(manual()||auto)return;(S.choices=S.choices||[]).push({n:S.playNo,kind,rec:recLabel,chosen:chosenLabel,followed:!!followed})}
+async function callOffense(play,hurry,followed,auto){if(busy)return;busy=true;const rec=lastRec;const same=rec&&rec.play===play&&!!rec.hurry===!!hurry;if(!auto)record('offense',rec&&rec.label,E.OFF_LABEL[play]+(hurry?' (hurry-up)':''),same,false);pendingHurry=false;
+ const A=an(),i=sampleIdx(A.y),d=E.DEF[i];controls();await play_(play,d,hurry)}
+async function callDefense(def,followed,auto){if(busy)return;busy=true;const rec=lastRec;if(!auto)record('defense',rec&&rec.label,E.DEF_LABEL[def],rec&&rec.def===def,false);
+ const A=an(),i=sampleIdx(A.x),row=A.rows[i];controls();await play_(row.off,def,row.hurry)}
+function sampleIdx(p){const r=E.stateRng(S);let t=0;for(const x of p)t+=x;let u=r()*t;for(let i=0;i<p.length;i++){u-=p[i];if(u<=0)return i}return p.length-1}
+async function play_(off,def,hurry){const before={ball:S.ball,poss:S.poss,down:S.down,toGo:S.toGo};const pre=JSON.stringify(E.light(S).phase);
+ const ev=E.snap(S,off,def,{hurry:!!hurry});anCache=null;banner(describe(ev));
+ await animate(ev,before,def);busy=false;refresh();checkEnd();return ev}
+function describe(ev){let t=(ev.text||'');if(ev.td)t='🏈 '+t;return t}
+async function doConvert(choice,followed,auto){const adv=R.conversionAdvice(S);if(!auto)record('conversion',adv.choice==='XP'?'Kick the extra point':'Go for two',choice==='XP'?'Kick the extra point':'Go for two',choice===adv.choice);
+ const ev=E.postConversion(S,choice);anCache=null;banner(ev.text);busy=false;refresh();checkEnd()}
+function checkEnd(){if(S&&S.over){controls();banner((S.result.winner?name(S.result.winner)+' win ':'Tie game ')+S.score.H+'-'+S.score.A+'. '+(S.log.length?'':''))}else if(S&&!busy&&!runAll)computerTurn()}
+/* when the computer must act first (e.g. nothing to do for the human) we simply wait: the human always has a decision on every snap, so only conversions are automatic */
+function computerTurn(){}
+async function runRest(){runAll=true;busy=false;controls();let guard=0;
+ while(runAll&&S&&!S.over&&guard++<400){
+  if(S.phase==='CONVERT'){const ch=R.conversionAdvice(S).choice;const ev=E.postConversion(S,ch);anCache=null;banner(ev.text);refresh();await sleep(fast()?0:120);continue}
+  const A=an();
+  if(S.poss===me){const b=R.bestOffense(A)[0];const d=E.DEF[sampleIdx(A.y)];const ev=E.snap(S,b.row.off,d,{hurry:b.row.hurry});anCache=null;banner(ev.text)}
+  else{const b=R.bestDefense(A)[0];const row=A.rows[sampleIdx(A.x)];const ev=E.snap(S,row.off,b.def,{hurry:row.hurry});anCache=null;banner(ev.text)}
+  refresh();await sleep(fast()?0:140)}
+ runAll=false;refresh();checkEnd()}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+/* ---------- field drawing / animation ---------- */
+const cv=$('field'),ctx=cv.getContext('2d');const W=cv.width,H=cv.height,EZ=10,PX=W/120;
+const X=abs=>(EZ+abs)*PX; // abs 0..100 along the field
+const absOf=(side,spot)=>side==='H'?spot:100-spot; // H attacks right
+function field(){ctx.fillStyle='#1f5a2c';ctx.fillRect(0,0,W,H);
+ for(let i=0;i<10;i++){ctx.fillStyle=i%2?'#1d5428':'#216030';ctx.fillRect(X(i*10),0,10*PX,H)}
+ const ez=(side,x0)=>{ctx.fillStyle=S.teams[side].color;ctx.globalAlpha=.85;ctx.fillRect(x0,0,EZ*PX,H);ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.font='bold 26px system-ui';ctx.save();ctx.translate(x0+EZ*PX/2+9,H/2);ctx.rotate(side==='H'?-Math.PI/2:Math.PI/2);ctx.textAlign='center';ctx.fillText(S.teams[side].name.toUpperCase(),0,0);ctx.restore()};
+ ez('A',0);ez('H',X(100));ctx.strokeStyle='#ffffffaa';ctx.lineWidth=2;
+ for(let y=0;y<=100;y+=5){ctx.beginPath();ctx.moveTo(X(y),0);ctx.lineTo(X(y),H);ctx.lineWidth=y%10===0?2:1;ctx.stroke()}
+ ctx.fillStyle='#ffffffcc';ctx.font='bold 15px system-ui';ctx.textAlign='center';for(let y=10;y<=90;y+=10){const v=y<=50?y:100-y;ctx.fillText(String(v),X(y),H-8);ctx.fillText(String(v),X(y),20)}}
+function marks(){if(S.over||S.phase!=='SNAP')return;const o=S.poss,los=absOf(o,S.ball),dir=o==='H'?1:-1;ctx.lineWidth=3;ctx.strokeStyle='#4aa3ff';ctx.beginPath();ctx.moveTo(X(los),0);ctx.lineTo(X(los),H);ctx.stroke();
+ const fd=los+dir*S.toGo;if(S.ball+S.toGo<100){ctx.strokeStyle='#f2c230';ctx.beginPath();ctx.moveTo(X(fd),0);ctx.lineTo(X(fd),H);ctx.stroke()}}
+function dot(x,y,col,lab,r){ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,r||9,0,7);ctx.fill();ctx.strokeStyle='#0008';ctx.lineWidth=1.5;ctx.stroke();if(lab){ctx.fillStyle='#fff';ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.fillText(lab,x,y+3)}}
+function formation(def){const o=S.poss,d=opp(o),dir=o==='H'?1:-1,los=absOf(o,S.ball),cy=H/2,oc=S.teams[o].color,dc=S.teams[d].color;const P=[];
+ const off=[['OL',0,-40],['OL',0,-20],['OL',0,0],['OL',0,20],['OL',0,40],['TE',0,62],['QB',-3,0],['RB',-6,0],['WR',0,-150],['WR',0,150],['WR',-1,-100]];
+ off.forEach(a=>P.push({side:'o',lab:a[0],x:los-dir*(Math.abs(a[1]))*1.0 - (a[1]===0?0:0),y:cy+a[2],col:oc}));
+ const dd=def||'BAL';const lb=dd==='STUFF'?4:dd==='BLITZ'?1.6:dd==='COVER'?7:5,db=dd==='COVER'?13:dd==='STUFF'?6:9;
+ [[-45],[-15],[15],[45]].forEach(a=>P.push({side:'d',lab:'DL',x:los+dir*1.2,y:cy+a[0],col:dc}));[[-30],[0],[30]].forEach(a=>P.push({side:'d',lab:'LB',x:los+dir*lb,y:cy+a[0],col:dc}));[[-150],[-90],[90],[150]].forEach(a=>P.push({side:'d',lab:'DB',x:los+dir*db,y:cy+a[0],col:dc}));
+ return P.map(p=>({...p,px:X(p.x)}))}
+function drawFormation(list,offsetX){list.forEach(p=>dot(p.px+(offsetX||0),p.y,p.col,p.lab,8))}
+let lastDef='BAL';
+function drawField(){if(!S)return;field();marks();if(!S.over&&S.phase==='SNAP'){const f=formation(lastDef);drawFormation(f);const o=S.poss,dir=o==='H'?1:-1;const qb=f.find(p=>p.lab==='QB');ctx.fillStyle='#8b5a2b';ctx.beginPath();ctx.ellipse(X(absOf(o,S.ball)),H/2,7,4.5,0,0,7);ctx.fill()}
+ else if(S.phase==='CONVERT'){const o=S.poss;ctx.fillStyle='#8b5a2b';ctx.beginPath();ctx.ellipse(X(absOf(o,98)),H/2,7,4.5,0,0,7);ctx.fill()}}
+async function animate(ev,before,def){lastDef=def;if(fast()||!ev.anim&&ev.kind!=='play'){drawField();return}
+ const o=before.poss,dir=o==='H'?1:-1,los=absOf(o,before.ball);const dur=ev.anim?900:600,t0=performance.now();
+ const SP=S.poss; // state already advanced; draw using pre-play geometry
+ const f0=(function(){const keep={ball:S.ball,poss:S.poss,phase:S.phase,over:S.over};S.ball=before.ball;S.poss=o;S.phase='SNAP';S.over=false;const f=formation(def);S.ball=keep.ball;S.poss=keep.poss;S.phase=keep.phase;S.over=keep.over;return f})();
+ const kind=ev.anim?ev.anim.type:(ev.off==='PUNT'||ev.off==='FG'?'kick':'none');const yds=ev.anim?ev.anim.yards:0;const air=ev.anim&&ev.anim.depth||0;
+ await new Promise(res=>{function frame(now){const k=Math.min(1,(now-t0)/dur);field();
+   ctx.lineWidth=3;ctx.strokeStyle='#4aa3ff';ctx.beginPath();ctx.moveTo(X(los),0);ctx.lineTo(X(los),H);ctx.stroke();
+   f0.forEach(p=>{let dx=0,dy=0;if(p.side==='d'){dx=-dir*0;const push=(kind==='run'||kind==='sack')?Math.max(0,Math.min(yds,8))*PX*.5*k:0;dx=dir*push*(p.lab==='DL'?.2:p.lab==='LB'?.7:.3)*0}
+     if(p.lab==='RB'&&kind==='run'){dx=dir*(6+Math.max(0,yds)+(ev.anim&&ev.anim.outside?0:0))*PX*k;dy=(ev.anim&&ev.anim.outside?(-1)*140*k:0)}
+     if(p.lab==='QB'&&(kind==='pass'||kind==='sack')){dx=-dir*(kind==='sack'?Math.abs(yds)*.5:4)*PX*k}
+     if(p.lab==='WR'&&kind==='pass'){dx=dir*(air*PX)*k*(p.y<H/2?1:.5)}
+     if(p.lab==='OL'){dx=dir*PX*.6*k}
+     dot(p.px+dx,p.y+dy,p.col,p.lab,8)});
+   let bx=X(los),by=H/2;
+   if(kind==='run'){const rb=f0.find(p=>p.lab==='RB');bx=rb.px+dir*(6+Math.max(0,yds))*PX*k;by=rb.y+(ev.anim.outside?-140*k:0)}
+   else if(kind==='pass'){const qb=f0.find(p=>p.lab==='QB');const tx=X(los)+dir*(air+ (ev.anim.complete?0:0))*PX;bx=qb.px+(tx-qb.px)*k;by=H/2-Math.sin(k*Math.PI)*70+(1-k)*0+(-30*k)}
+   else if(kind==='sack'){bx=X(los)-dir*Math.abs(yds)*PX*.5*k}
+   else if(kind==='kick'){const tx=X(absOf(o,Math.min(100,before.ball+ (ev.off==='FG'?(100-before.ball+10):(ev.distance||45)))));bx=X(los)+(tx-X(los))*k;by=H/2-Math.sin(k*Math.PI)*120}
+   ctx.fillStyle='#8b5a2b';ctx.beginPath();ctx.ellipse(bx,by,7,4.5,0,0,7);ctx.fill();
+   if(k<1)requestAnimationFrame(frame);else res()}requestAnimationFrame(frame)});
+ await sleep(220)}
+/* ---------- stats panel ---------- */
+const TABS=[['box','Team stats'],['drives','Drives'],['players','Players'],['log','Play-by-play'],['about','About']];
+function panel(){const t=$('tabs');t.innerHTML='';TABS.forEach(([k,l])=>{const b=document.createElement('button');b.textContent=l;if(tab===k)b.classList.add('sel');b.onclick=()=>{tab=k;panel()};t.appendChild(b)});const p=$('panelTab');
+ if(tab==='box')p.innerHTML=boxTable();else if(tab==='drives')p.innerHTML=driveTable();else if(tab==='players')p.innerHTML=playerTable();else if(tab==='log')p.innerHTML=logHtml();else p.innerHTML=aboutHtml()}
+function boxTable(){const h=S.stats.H,a=S.stats.A,q=S.quarterScores;const tp=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+ const row=(l,x,y)=>'<tr><td>'+l+'</td><td>'+x+'</td><td>'+y+'</td></tr>';const c=(s)=>s.passComp+'/'+s.passAtt;
+ let sc='<table><tr><th></th><th>1</th><th>2</th><th>3</th><th>4</th><th>OT</th><th>Final</th></tr>';['A','H'].forEach(k=>{sc+='<tr><td>'+S.teams[k].name+'</td>'+q[k].map(v=>'<td>'+v+'</td>').join('')+'<td><b>'+S.score[k]+'</b></td></tr>'});sc+='</table><br>';
+ return sc+'<table><tr><th></th><th>'+S.teams.H.name+'</th><th>'+S.teams.A.name+'</th></tr>'+row('First downs',h.firstDowns,a.firstDowns)+row('Total yards',h.totalYds,a.totalYds)+row('Plays',h.plays,a.plays)+row('Rushing',h.rushAtt+' for '+h.rushYds,a.rushAtt+' for '+a.rushYds)+row('Passing',c(h)+', '+h.passYds+' yds',c(a)+', '+a.passYds+' yds')+row('Sacks allowed',h.sacksAllowed+' ('+h.sackYdsLost+' yds)',a.sacksAllowed+' ('+a.sackYdsLost+' yds)')+row('Interceptions thrown',h.ints,a.ints)+row('Fumbles lost',h.fumblesLost,a.fumblesLost)+row('3rd down',h.thirdConv+'/'+h.thirdAtt,a.thirdConv+'/'+a.thirdAtt)+row('4th down',h.fourthConv+'/'+h.fourthAtt,a.fourthConv+'/'+a.fourthAtt)+row('Punts (avg)',h.punts+(h.punts?' ('+(h.puntYds/h.punts).toFixed(0)+')':''),a.punts+(a.punts?' ('+(a.puntYds/a.punts).toFixed(0)+')':''))+row('Field goals',h.fgMade+'/'+h.fgAtt,a.fgMade+'/'+a.fgAtt)+row('Extra points / 2-pt',h.xpMade+'/'+h.xpAtt+' · '+h.twoMade+'/'+h.twoAtt,a.xpMade+'/'+a.xpAtt+' · '+a.twoMade+'/'+a.twoAtt)+row('Time of possession',tp(h.top),tp(a.top))+'</table>'}
+function driveTable(){if(!S.drives.length)return '<span class="muted">No completed drives yet.</span>';let s='<table><tr><th>Team</th><th>Start</th><th>Plays</th><th>Yds</th><th>Result</th></tr>';S.drives.forEach(d=>{s+='<tr><td>'+S.teams[d.team].name+'</td><td>Q'+d.startQ+' '+Math.floor(d.startClock/60)+':'+String(d.startClock%60).padStart(2,'0')+'</td><td>'+d.plays+'</td><td>'+d.yards+'</td><td>'+d.result+'</td></tr>'});return s+'</table>'}
+function playerTable(){let s='';['H','A'].forEach(k=>{const pl=Object.values(S.players[k]);s+='<b>'+S.teams[k].name+'</b><table><tr><th>Player</th><th>Passing</th><th>Rushing</th><th>Receiving</th><th>Defense</th><th>Kicking</th></tr>';pl.forEach(p=>{const pa=p.passAtt?p.passComp+'/'+p.passAtt+', '+p.passYds+' yds, '+p.passTD+' TD, '+p.int+' INT':'',ru=p.rushAtt?p.rushAtt+' for '+p.rushYds+(p.rushTD?', '+p.rushTD+' TD':''):'',re=p.rec?p.rec+' for '+p.recYds+(p.recTD?', '+p.recTD+' TD':''):'',de=(p.tkl||p.sack||p.defInt)?p.tkl+' tkl'+(p.sack?', '+p.sack+' sk':'')+(p.defInt?', '+p.defInt+' int':''):'',ki=p.fgA||p.fgM?p.fgM+'/'+(p.fgA||p.fgM)+' FG':(p.punts?p.punts+' punts, '+(p.puntYds/p.punts).toFixed(0)+' avg':'');if(pa||ru||re||de||ki)s+='<tr><td>'+p.name+' <span class="muted">'+p.pos+'</span></td><td>'+pa+'</td><td>'+ru+'</td><td>'+re+'</td><td>'+de+'</td><td>'+ki+'</td></tr>'});s+='</table><br>'});return s}
+function logHtml(){const L=S.log.slice().reverse().filter(e=>e.text).slice(0,120);return '<div id="log">'+L.map(e=>'<div class="'+(e.score||e.pts?'sc':e.turnover?'tv':'')+'"><span class="muted">Q'+(e.q>4?'OT':e.q)+' '+Math.floor(e.clock/60)+':'+String(e.clock%60).padStart(2,'0')+'</span> '+(e.down?['','1st','2nd','3rd','4th'][e.down]+'&'+e.toGo+' · ':'')+e.text+'</div>').join('')+'</div>'}
+function aboutHtml(){return '<p><b>Early prototype for testing and feedback.</b> Two made-up teams. You make the calls; the simulation decides what happens.</p><p class="muted">The recommendation is the play that gives your team the best chance to win the game, given score, clock, down, distance and field position. It is chosen by simulating the situation many times against the computer\'s likely defense. A riskier play is only recommended when it raises the chance of winning.</p><p class="muted">Not built yet: timeouts, penalties, onside kicks, individual player ratings, GM / Spectator / Hybrid modes.</p>'}
+/* test hook (headless tests only reads) */
+window.__v2={get S(){return S},get me(){return me},newGame,saveObj,loadObj,runRest};
+newGame(new URLSearchParams(location.search).get('seed')||String(Date.now()),'H');(function(){const w=document.getElementById('welcome');let seen=false;try{seen=localStorage.getItem('wihs_v2_welcome')==='1'}catch(e){}document.getElementById('bAbout').onclick=()=>w.showModal();document.getElementById('welcomeGo').onclick=()=>{try{localStorage.setItem('wihs_v2_welcome','1')}catch(e){}w.close()};if(!seen&&!/fast=1/.test(location.search))w.showModal()})();
+})();
+</script></body></html>
